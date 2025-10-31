@@ -817,6 +817,18 @@ function renderDetailView() {
                 ${isEditMode ? renderStatusSelect() : `<span class="detail-value">${currentRowData['Status'] || 'Menunggu Verifikasi'}</span>`}
             </div>
         </div>
+
+        <div class="detail-row">
+        <div class="detail-group" style="grid-column: 1/-1;">
+            <button class="btn-info" onclick="generateAndCopyEditLink()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                🔗 Generate Link Edit untuk Peserta
+            </button>
+            <div id="generatedLinkContainer" style="margin-top: 10px; display: none;">
+                <input type="text" id="generatedLinkInput" readonly style="width: 100%; padding: 10px; border: 2px solid var(--info); border-radius: 8px; background: rgba(6, 182, 212, 0.1); font-size: 0.85em; font-family: monospace;">
+                <p style="font-size: 0.8em; color: #666; margin-top: 6px;">✅ Link berhasil dicopy ke clipboard!</p>
+            </div>
+        </div>
+    </div>
     `;
     
     if (isEditMode) {
@@ -2064,38 +2076,34 @@ function openPreviewModal(fileUrl, docName) {
     const viewer = document.getElementById('previewViewer');
     const loading = document.getElementById('previewLoading');
     
-    // Set title
     title.textContent = `📄 Preview: ${docName}`;
-    
-    // Show modal with side-by-side layout
     modal.classList.add('show');
     
-    // Adjust detail modal to side-by-side
     const detailModal = document.getElementById('detailModal');
     if (detailModal) {
         detailModal.classList.add('split-view');
     }
     
-    // Show loading
     loading.style.display = 'flex';
     viewer.style.display = 'none';
     
-    // Convert Google Drive URL to preview URL
     let previewUrl = convertToPreviewUrl(fileUrl);
     Logger.log('openPreviewModal', 'Preview URL:', previewUrl);
     
-    // Load iframe
     viewer.src = previewUrl;
     
-    // Hide loading after iframe loads
     viewer.onload = function() {
         Logger.log('openPreviewModal', 'Iframe loaded successfully');
         loading.style.display = 'none';
         viewer.style.display = 'block';
         applyPreviewTransform();
+        
+        // TAMBAHKAN INI - Init pan setelah load
+        setTimeout(() => {
+            initPreviewPan();
+        }, 300);
     };
     
-    // Handle error
     viewer.onerror = function() {
         Logger.log('openPreviewModal', 'Error loading iframe');
         loading.innerHTML = '<p style="color: #ef4444;">❌ Gagal memuat preview dokumen</p>';
@@ -2360,4 +2368,127 @@ function findIncompleteDocs() {
     showAlert(alertMessage, 'error');
     
     Logger.log('findIncompleteDocs', '=== INCOMPLETE DOCS SEARCH COMPLETE ===');
+}
+
+function generateAndCopyEditLink() {
+    const nomorPeserta = currentRowData['Nomor Peserta'];
+    
+    if (!nomorPeserta) {
+        showAlert('❌ Nomor peserta tidak ditemukan!', 'error', true);
+        return;
+    }
+    
+    // Generate encoded link
+    const encoded = btoa('peserta-' + nomorPeserta);
+    const editLink = `https://bimasindramayu.github.io/mtq/edit.html#${encoded}`;
+    
+    Logger.log('generateAndCopyEditLink', 'Generated link:', editLink);
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(editLink).then(() => {
+        Logger.log('generateAndCopyEditLink', 'Link copied to clipboard');
+        
+        // Show link in UI
+        const container = document.getElementById('generatedLinkContainer');
+        const input = document.getElementById('generatedLinkInput');
+        
+        if (container && input) {
+            input.value = editLink;
+            container.style.display = 'block';
+            input.select();
+            
+            showAlert(`✅ Link edit untuk peserta ${nomorPeserta} berhasil dicopy!`, 'success', true);
+        }
+        
+    }).catch(err => {
+        Logger.log('generateAndCopyEditLink', 'Error copying to clipboard:', err);
+        showAlert('⚠️ Gagal copy link. Silakan copy manual.', 'error', true);
+        
+        // Fallback: show link anyway
+        const container = document.getElementById('generatedLinkContainer');
+        const input = document.getElementById('generatedLinkInput');
+        
+        if (container && input) {
+            input.value = editLink;
+            container.style.display = 'block';
+            input.select();
+        }
+    });
+}
+
+// ========== PREVIEW DRAG TO PAN ==========
+let isPanning = false;
+let startX = 0;
+let startY = 0;
+let scrollLeft = 0;
+let scrollTop = 0;
+
+function initPreviewPan() {
+    const container = document.querySelector('.preview-container');
+    const viewer = document.getElementById('previewViewer');
+    
+    if (!container || !viewer) return;
+    
+    // Mouse events
+    container.addEventListener('mousedown', startPan);
+    container.addEventListener('mousemove', doPan);
+    container.addEventListener('mouseup', endPan);
+    container.addEventListener('mouseleave', endPan);
+    
+    // Touch events
+    container.addEventListener('touchstart', startPanTouch);
+    container.addEventListener('touchmove', doPanTouch);
+    container.addEventListener('touchend', endPan);
+    
+    Logger.log('initPreviewPan', 'Pan events initialized');
+}
+
+function startPan(e) {
+    isPanning = true;
+    const container = document.querySelector('.preview-container');
+    container.style.cursor = 'grabbing';
+    startX = e.pageX - container.offsetLeft;
+    startY = e.pageY - container.offsetTop;
+    scrollLeft = container.scrollLeft;
+    scrollTop = container.scrollTop;
+}
+
+function startPanTouch(e) {
+    if (e.touches.length !== 1) return;
+    isPanning = true;
+    const container = document.querySelector('.preview-container');
+    startX = e.touches[0].pageX - container.offsetLeft;
+    startY = e.touches[0].pageY - container.offsetTop;
+    scrollLeft = container.scrollLeft;
+    scrollTop = container.scrollTop;
+}
+
+function doPan(e) {
+    if (!isPanning) return;
+    e.preventDefault();
+    const container = document.querySelector('.preview-container');
+    const x = e.pageX - container.offsetLeft;
+    const y = e.pageY - container.offsetTop;
+    const walkX = (x - startX) * 2;
+    const walkY = (y - startY) * 2;
+    container.scrollLeft = scrollLeft - walkX;
+    container.scrollTop = scrollTop - walkY;
+}
+
+function doPanTouch(e) {
+    if (!isPanning || e.touches.length !== 1) return;
+    e.preventDefault();
+    const container = document.querySelector('.preview-container');
+    const x = e.touches[0].pageX - container.offsetLeft;
+    const y = e.touches[0].pageY - container.offsetTop;
+    const walkX = (x - startX) * 2;
+    const walkY = (y - startY) * 2;
+    container.scrollLeft = scrollLeft - walkX;
+    container.scrollTop = scrollTop - walkY;
+}
+
+function endPan() {
+    isPanning = false;
+    const container = document.querySelector('.preview-container');
+    container.style.cursor = 'grab';
 }
