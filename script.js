@@ -694,7 +694,7 @@ function renderTable() {
 function updateStats() {
     const statsRow = document.getElementById('statsRow');
     
-    const total = filteredData.length;
+    const totalRegistrations = filteredData.length;
     const pending = filteredData.filter(r => r['Status'] === 'Menunggu Verifikasi').length;
     const verified = filteredData.filter(r => r['Status'] === 'Terverifikasi').length;
     const rejected = filteredData.filter(r => r['Status'] === 'Ditolak').length;
@@ -712,19 +712,47 @@ function updateStats() {
     const uniqueCabang = new Set();
     filteredData.forEach(r => {
         if (r['Cabang Lomba'] && r['Cabang Lomba'] !== '-') {
-            // Hapus " Putra" atau " Putri" dari akhir nama cabang
             let cabangBase = r['Cabang Lomba'].replace(/\s+(Putra|Putri)$/, '');
             uniqueCabang.add(cabangBase);
         }
     });
     const cabangCount = uniqueCabang.size;
 
-    Logger.log('updateStats', `Total: ${total}, Pending: ${pending}, Verified: ${verified}, Rejected: ${rejected}, Kecamatan: ${kecamatanCount}, Cabang: ${cabangCount}`);
+    // ===== HITUNG JUMLAH PESERTA (INDIVIDU) =====
+    let totalParticipants = 0;
+    
+    filteredData.forEach(row => {
+        // Peserta utama (jika ada NIK berarti ada peserta)
+        if (row['NIK'] && row['NIK'] !== '-') {
+            totalParticipants += 1;
+        }
+        
+        // Anggota Tim #1
+        if (row['Anggota Tim #1 - NIK'] && row['Anggota Tim #1 - NIK'] !== '-') {
+            totalParticipants += 1;
+        }
+        
+        // Anggota Tim #2
+        if (row['Anggota Tim #2 - NIK'] && row['Anggota Tim #2 - NIK'] !== '-') {
+            totalParticipants += 1;
+        }
+        
+        // Anggota Tim #3
+        if (row['Anggota Tim #3 - NIK'] && row['Anggota Tim #3 - NIK'] !== '-') {
+            totalParticipants += 1;
+        }
+    });
+
+    Logger.log('updateStats', `Total Registrations: ${totalRegistrations}, Total Participants: ${totalParticipants}, Pending: ${pending}, Verified: ${verified}, Rejected: ${rejected}, Kecamatan: ${kecamatanCount}, Cabang: ${cabangCount}`);
 
     statsRow.innerHTML = `
         <div class="stat-card">
-            <div class="stat-value">${total}</div>
-            <div class="stat-label">Total Peserta</div>
+            <div class="stat-value">${totalRegistrations}</div>
+            <div class="stat-label">Jumlah Pendaftaran</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${totalParticipants}</div>
+            <div class="stat-label">Jumlah Peserta</div>
         </div>
         <div class="stat-card">
             <div class="stat-value" style="background: linear-gradient(135deg, #f59e0b, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${pending}</div>
@@ -739,7 +767,7 @@ function updateStats() {
             <div class="stat-label">Ditolak</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${kecamatanCount}</div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #06b6d4, #0891b2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">${kecamatanCount}</div>
             <div class="stat-label">Kecamatan Terdaftar</div>
         </div>
         <div class="stat-card">
