@@ -35,6 +35,30 @@ const VERIFIKATOR_MAP = {
     'KTIQ': 'Rakha'
 };
 
+// Mapping dokumen mandatory per cabang
+const MANDATORY_DOCS = {
+    'Tartil Al Qur\'an': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tilawah Anak-anak': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tilawah Remaja': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tilawah Dewasa': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Qira\'at Mujawwad': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Hafalan 1 Juz': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Hafalan 5 Juz': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Hafalan 10 Juz': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Hafalan 20 Juz': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Hafalan 30 Juz': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tafsir Indonesia': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tafsir Arab': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Tafsir Inggris': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Kaligrafi Naskah': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Kaligrafi Hiasan': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Kaligrafi Dekorasi': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'Kaligrafi Kontemporer': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
+    'KTIQ': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'], // KTIQ ADALAH INDIVIDU!
+    'Fahm Al Qur\'an': 'team3', // Team dengan 3 anggota
+    'Syarh Al Qur\'an': 'team3'  // Team dengan 3 anggota
+};
+
 function getVerifikator(cabang) {
     if (!cabang) return '-';
     // Hapus Putra/Putri dari akhir cabang
@@ -1142,14 +1166,12 @@ function renderDocumentSection(type, docKeys, title) {
                 <input type="file" class="file-input" data-field="${key}" accept=".pdf,.jpg,.jpeg,.png" style="margin-bottom: 5px;">
                 ${hasFile ? `<div style="font-size: 0.85em; color: #666; margin-top: 5px;">
                     File saat ini: 
-                    <a href="${safeUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;">Lihat File</a>
-                    <button type="button" class="preview-btn" data-file-url="${safeUrl}" data-doc-name="${safeDocName}" style="margin-left: 8px; padding: 4px 10px; background: linear-gradient(135deg, var(--info), #0891b2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8em;">👁️ Preview</button>
+                    <button type="button" class="preview-btn" data-file-url="${safeUrl}" data-doc-name="${safeDocName}" style="padding: 4px 10px; background: linear-gradient(135deg, var(--info), #0891b2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8em;">👁️ Preview</button>
                 </div>` : ''}
             `;
         } else if (hasFile) {
             html += `
                 <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <a href="${safeUrl}" target="_blank" class="file-link">📄 Buka File</a>
                     <button type="button" class="preview-btn file-link" data-file-url="${safeUrl}" data-doc-name="${safeDocName}" style="background: linear-gradient(135deg, var(--info), #0891b2); margin: 0; cursor: pointer; border: none;">👁️ Preview</button>
                 </div>
             `;
@@ -2080,6 +2102,14 @@ function openPreviewModal(fileUrl, docName) {
     };
 }
 
+function previewOpenOriginal() {
+    if (currentPreviewUrl) {
+        Logger.log('previewOpenOriginal', 'Opening original file:', currentPreviewUrl);
+        // Buka file asli di tab baru
+        window.open(currentPreviewUrl.replace('/preview', '/view'), '_blank');
+    }
+}
+
 function convertToPreviewUrl(url) {
     Logger.log('convertToPreviewUrl', 'Original URL:', url);
     
@@ -2210,3 +2240,124 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function findIncompleteDocs() {
+    Logger.log('findIncompleteDocs', '=== START FINDING INCOMPLETE DOCS ===');
+    
+    if (allData.length === 0) {
+        showAlert('⚠️ Tidak ada data peserta!', 'error');
+        return;
+    }
+    
+    const incompleteList = [];
+    
+    allData.forEach((row, idx) => {
+        const cabang = row['Cabang Lomba'] || '';
+        const status = row['Status'] || '';
+        
+        // Skip jika sudah ditolak
+        if (status === 'Ditolak') {
+            return;
+        }
+        
+        // Hapus suffix Putra/Putri untuk matching
+        const cabangBase = cabang.replace(/\s+(Putra|Putri)$/, '').trim();
+        
+        // Cari mandatory docs untuk cabang ini
+        const mandatoryConfig = MANDATORY_DOCS[cabangBase];
+        
+        if (!mandatoryConfig) {
+            Logger.log('findIncompleteDocs', `No mandatory docs defined for: ${cabangBase}`);
+            return;
+        }
+        
+        let mandatoryDocs = [];
+        
+        // Check apakah ini cabang team
+        if (mandatoryConfig === 'team3') {
+            // Detect apakah benar-benar tim berdasarkan data anggota
+            const hasTeamMember1 = row['Anggota Tim #1 - NIK'] && row['Anggota Tim #1 - NIK'] !== '-';
+            const hasTeamMember2 = row['Anggota Tim #2 - NIK'] && row['Anggota Tim #2 - NIK'] !== '-';
+            const hasTeamMember3 = row['Anggota Tim #3 - NIK'] && row['Anggota Tim #3 - NIK'] !== '-';
+            
+            if (hasTeamMember1) {
+                mandatoryDocs.push('Link - Doc Surat Mandat Team 1', 'Link - Doc KTP Team 1', 'Link - Doc Pas Photo Team 1');
+            }
+            if (hasTeamMember2) {
+                mandatoryDocs.push('Link - Doc Surat Mandat Team 2', 'Link - Doc KTP Team 2', 'Link - Doc Pas Photo Team 2');
+            }
+            if (hasTeamMember3) {
+                mandatoryDocs.push('Link - Doc Surat Mandat Team 3', 'Link - Doc KTP Team 3', 'Link - Doc Pas Photo Team 3');
+            }
+            
+            // Jika tidak ada anggota tim sama sekali, skip (data invalid)
+            if (mandatoryDocs.length === 0) {
+                Logger.log('findIncompleteDocs', `Team cabang but no team members found for: ${row['Nomor Peserta']}`);
+                return;
+            }
+        } else {
+            // Cabang individu
+            mandatoryDocs = mandatoryConfig;
+        }
+        
+        // Check setiap dokumen mandatory
+        const missingDocs = [];
+        mandatoryDocs.forEach(docField => {
+            const docValue = row[docField] || '';
+            
+            // Check lebih ketat untuk memastikan file benar-benar ada
+            const isEmpty = !docValue || 
+                           docValue.trim() === '' || 
+                           docValue === '-' ||
+                           docValue === 'undefined' ||
+                           docValue === 'null';
+            
+            // Juga check apakah docValue adalah URL Google Drive yang valid
+            const isValidUrl = docValue.includes('drive.google.com') || docValue.includes('docs.google.com');
+            
+            if (isEmpty || !isValidUrl) {
+                missingDocs.push(docField.replace('Link - Doc ', ''));
+                Logger.log('findIncompleteDocs', `Missing doc: ${docField} for ${row['Nomor Peserta']} - Value: "${docValue}"`);
+            }
+        });
+        
+        if (missingDocs.length > 0) {
+            const displayName = (row['Nama Regu/Tim'] && row['Nama Regu/Tim'] !== '-') 
+                ? row['Nama Regu/Tim'] 
+                : row['Nama Lengkap'] || '-';
+            
+            incompleteList.push({
+                rowIndex: row.rowIndex,
+                nomorPeserta: row['Nomor Peserta'] || '-',
+                nama: displayName,
+                cabang: cabang,
+                kecamatan: row['Kecamatan'] || '-',
+                status: status,
+                missingDocs: missingDocs,
+                missingCount: missingDocs.length
+            });
+            
+            Logger.log('findIncompleteDocs', `Added to list: ${displayName} - Missing: ${missingDocs.join(', ')}`);
+        }
+    });
+    
+    Logger.log('findIncompleteDocs', `Found ${incompleteList.length} participants with incomplete docs`);
+    
+    if (incompleteList.length === 0) {
+        showAlert('✅ Semua peserta sudah melengkapi dokumen mandatory!', 'success');
+        return;
+    }
+    
+    // Filter allData dan tampilkan di tabel
+    filteredData = allData.filter(row => {
+        return incompleteList.some(incomplete => incomplete.rowIndex === row.rowIndex);
+    });
+    
+    renderTable();
+    
+    // Show detail alert
+    const alertMessage = `⚠️ Ditemukan ${incompleteList.length} peserta dengan dokumen tidak lengkap!\n\nKlik "Lihat" pada tabel untuk melihat detail dokumen yang kurang.`;
+    showAlert(alertMessage, 'error');
+    
+    Logger.log('findIncompleteDocs', '=== INCOMPLETE DOCS SEARCH COMPLETE ===');
+}

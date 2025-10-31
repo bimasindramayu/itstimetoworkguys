@@ -96,6 +96,7 @@
                 <button class="btn-primary" onclick="searchData()">🔎 Cari</button>
                 <button class="btn-secondary" onclick="resetSearch()">↻ Reset</button>
                 <div style="flex: 1;"></div>
+                <button class="btn-warning" onclick="findIncompleteDocs()">⚠️ Dokumen Tidak Lengkap</button>
                 <button class="btn-info" onclick="downloadSearchResultsAsCSV()">📥 Download CSV</button>
                 <button class="btn-success" onclick="refreshData()">🔄 Refresh Data</button>
             </div>
@@ -161,7 +162,8 @@
             <button onclick="previewZoomOut()">🔍 Zoom Out</button>
             <button onclick="previewRotateLeft()">↩️ Putar Kiri</button>
             <button onclick="previewRotateRight()">↪️ Putar Kanan</button>
-            <button onclick="previewReset()">📄 Reset</button>
+            <button onclick="previewReset()">🔄 Reset</button>
+            <button onclick="previewOpenOriginal()" style="background: linear-gradient(135deg, var(--success), #059669); border-color: rgba(16, 185, 129, 0.3);">📂 Buka File</button>
             <button onclick="previewDownload()">⬇️ Download</button>
         </div>
     </div>
