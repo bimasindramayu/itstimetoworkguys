@@ -2023,8 +2023,6 @@ function debugCheckLinkColumns() {
   return linkCount;
 }
 
-// ========== PREVIEW MODAL FUNCTIONS ==========
-
 let previewZoomLevel = 1;
 let previewRotation = 0;
 let currentPreviewUrl = '';
@@ -2047,8 +2045,14 @@ function openPreviewModal(fileUrl, docName) {
     // Set title
     title.textContent = `📄 Preview: ${docName}`;
     
-    // Show modal
+    // Show modal with side-by-side layout
     modal.classList.add('show');
+    
+    // Adjust detail modal to side-by-side
+    const detailModal = document.getElementById('detailModal');
+    if (detailModal) {
+        detailModal.classList.add('split-view');
+    }
     
     // Show loading
     loading.style.display = 'flex';
@@ -2112,15 +2116,20 @@ function convertToPreviewUrl(url) {
     return url;
 }
 
-
 function closePreviewModal() {
     Logger.log('closePreviewModal', 'Closing preview modal');
     
     const modal = document.getElementById('previewModal');
     const viewer = document.getElementById('previewViewer');
+    const detailModal = document.getElementById('detailModal');
     
     modal.classList.remove('show');
     viewer.src = '';
+    
+    // Remove split view
+    if (detailModal) {
+        detailModal.classList.remove('split-view');
+    }
     
     // Reset transform
     previewZoomLevel = 1;
@@ -2183,3 +2192,21 @@ function previewDownload() {
     }
 }
 
+// Add event listeners for preview buttons after DOM loaded
+document.addEventListener('DOMContentLoaded', function() {
+    loadData();
+    
+    // Add event delegation for preview buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('preview-btn') || e.target.closest('.preview-btn')) {
+            const btn = e.target.classList.contains('preview-btn') ? e.target : e.target.closest('.preview-btn');
+            const fileUrl = btn.getAttribute('data-file-url');
+            const docName = btn.getAttribute('data-doc-name');
+            
+            if (fileUrl && docName) {
+                Logger.log('Preview button clicked', 'File:', docName);
+                openPreviewModal(fileUrl, docName);
+            }
+        }
+    });
+});
