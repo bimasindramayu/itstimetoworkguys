@@ -133,7 +133,7 @@
             <div id="modalAlertContainer"></div>
             <div class="modal-header">
                 <span>📋 Detail Peserta</span>
-                <button class="close-btn" onclick="closeDetailModal()">✕</button>
+                <button class="close-btn" onclick="closeDetailModal()">✖️</button>
             </div>
             <div class="modal-body" id="detailContent"></div>
             <div class="modal-footer" id="detailFooter">
@@ -141,6 +141,28 @@
                 <button class="btn-primary" onclick="toggleEditMode()">✏️ Edit</button>
                 <button class="btn-danger" onclick="confirmDelete()">🗑️ Hapus</button>
             </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="preview-modal">
+        <div class="preview-header">
+            <div class="preview-title" id="previewTitle">📄 Preview Dokumen</div>
+            <button class="preview-close" onclick="closePreviewModal()">✖️</button>
+        </div>
+        <div class="preview-container">
+            <div class="preview-loading" id="previewLoading">
+                <div class="spinner"></div>
+                <p>Memuat dokumen...</p>
+            </div>
+            <iframe id="previewViewer" class="preview-viewer" style="display: none;"></iframe>
+        </div>
+        <div class="preview-controls">
+            <button onclick="previewZoomIn()">🔍 Zoom In</button>
+            <button onclick="previewZoomOut()">🔍 Zoom Out</button>
+            <button onclick="previewRotateLeft()">↩️ Putar Kiri</button>
+            <button onclick="previewRotateRight()">↪️ Putar Kanan</button>
+            <button onclick="previewReset()">📄 Reset</button>
+            <button onclick="previewDownload()">⬇️ Download</button>
         </div>
     </div>
 

@@ -86,6 +86,20 @@ const KECAMATAN_LIST = [
 
 document.addEventListener('DOMContentLoaded', function() {
     loadData();
+    
+    // Add event delegation for preview buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('preview-btn') || e.target.closest('.preview-btn')) {
+            const btn = e.target.classList.contains('preview-btn') ? e.target : e.target.closest('.preview-btn');
+            const fileUrl = btn.getAttribute('data-file-url');
+            const docName = btn.getAttribute('data-doc-name');
+            
+            if (fileUrl && docName) {
+                Logger.log('Preview button clicked', 'File:', docName);
+                openPreviewModal(fileUrl, docName);
+            }
+        }
+    });
 });
 
 function showAlert(message, type = 'success', isModal = false) {
@@ -1115,6 +1129,9 @@ function renderDocumentSection(type, docKeys, title) {
     
     docKeys.forEach((key, idx) => {
         const hasFile = currentRowData[key] && currentRowData[key].trim();
+        const safeUrl = hasFile ? currentRowData[key].replace(/'/g, '&apos;') : '';
+        const safeDocName = docNames[idx].replace(/'/g, '&apos;');
+        
         html += `
             <div style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 6px; border: 1px solid rgba(15, 52, 96, 0.1);">
                 <strong style="color: var(--primary); display: block; margin-bottom: 5px;">${docNames[idx]}</strong>
@@ -1123,10 +1140,19 @@ function renderDocumentSection(type, docKeys, title) {
         if (isEditMode) {
             html += `
                 <input type="file" class="file-input" data-field="${key}" accept=".pdf,.jpg,.jpeg,.png" style="margin-bottom: 5px;">
-                ${hasFile ? `<div style="font-size: 0.85em; color: #666;">File saat ini: <a href="${currentRowData[key]}" target="_blank">Lihat File</a></div>` : ''}
+                ${hasFile ? `<div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                    File saat ini: 
+                    <a href="${safeUrl}" target="_blank" style="color: var(--primary); text-decoration: underline;">Lihat File</a>
+                    <button type="button" class="preview-btn" data-file-url="${safeUrl}" data-doc-name="${safeDocName}" style="margin-left: 8px; padding: 4px 10px; background: linear-gradient(135deg, var(--info), #0891b2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8em;">👁️ Preview</button>
+                </div>` : ''}
             `;
         } else if (hasFile) {
-            html += `<a href="${currentRowData[key]}" target="_blank" class="file-link">📄 Buka File</a>`;
+            html += `
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <a href="${safeUrl}" target="_blank" class="file-link">📄 Buka File</a>
+                    <button type="button" class="preview-btn file-link" data-file-url="${safeUrl}" data-doc-name="${safeDocName}" style="background: linear-gradient(135deg, var(--info), #0891b2); margin: 0; cursor: pointer; border: none;">👁️ Preview</button>
+                </div>
+            `;
         } else {
             html += `<span style="color: #999;">Tidak ada file</span>`;
         }
@@ -1996,3 +2022,164 @@ function debugCheckLinkColumns() {
   
   return linkCount;
 }
+
+// ========== PREVIEW MODAL FUNCTIONS ==========
+
+let previewZoomLevel = 1;
+let previewRotation = 0;
+let currentPreviewUrl = '';
+let currentDocName = '';
+
+function openPreviewModal(fileUrl, docName) {
+    Logger.log('openPreviewModal', 'Opening preview for:', docName);
+    Logger.log('openPreviewModal', 'URL:', fileUrl);
+    
+    currentPreviewUrl = fileUrl;
+    currentDocName = docName;
+    previewZoomLevel = 1;
+    previewRotation = 0;
+    
+    const modal = document.getElementById('previewModal');
+    const title = document.getElementById('previewTitle');
+    const viewer = document.getElementById('previewViewer');
+    const loading = document.getElementById('previewLoading');
+    
+    // Set title
+    title.textContent = `📄 Preview: ${docName}`;
+    
+    // Show modal
+    modal.classList.add('show');
+    
+    // Show loading
+    loading.style.display = 'flex';
+    viewer.style.display = 'none';
+    
+    // Convert Google Drive URL to preview URL
+    let previewUrl = convertToPreviewUrl(fileUrl);
+    Logger.log('openPreviewModal', 'Preview URL:', previewUrl);
+    
+    // Load iframe
+    viewer.src = previewUrl;
+    
+    // Hide loading after iframe loads
+    viewer.onload = function() {
+        Logger.log('openPreviewModal', 'Iframe loaded successfully');
+        loading.style.display = 'none';
+        viewer.style.display = 'block';
+        applyPreviewTransform();
+    };
+    
+    // Handle error
+    viewer.onerror = function() {
+        Logger.log('openPreviewModal', 'Error loading iframe');
+        loading.innerHTML = '<p style="color: #ef4444;">❌ Gagal memuat preview dokumen</p>';
+    };
+}
+
+function convertToPreviewUrl(url) {
+    Logger.log('convertToPreviewUrl', 'Original URL:', url);
+    
+    // Extract file ID from various Google Drive URL formats
+    let fileId = null;
+    
+    // Format 1: https://drive.google.com/file/d/FILE_ID/view
+    let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) {
+        fileId = match[1];
+    }
+    
+    // Format 2: https://drive.google.com/open?id=FILE_ID
+    if (!fileId) {
+        match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (match) {
+            fileId = match[1];
+        }
+    }
+    
+    // Format 3: Already a preview URL
+    if (url.includes('/preview')) {
+        Logger.log('convertToPreviewUrl', 'Already preview URL');
+        return url;
+    }
+    
+    if (fileId) {
+        const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        Logger.log('convertToPreviewUrl', 'Converted to preview URL:', previewUrl);
+        return previewUrl;
+    }
+    
+    Logger.log('convertToPreviewUrl', 'Could not extract file ID, returning original URL');
+    return url;
+}
+
+
+function closePreviewModal() {
+    Logger.log('closePreviewModal', 'Closing preview modal');
+    
+    const modal = document.getElementById('previewModal');
+    const viewer = document.getElementById('previewViewer');
+    
+    modal.classList.remove('show');
+    viewer.src = '';
+    
+    // Reset transform
+    previewZoomLevel = 1;
+    previewRotation = 0;
+    currentPreviewUrl = '';
+    currentDocName = '';
+}
+
+function applyPreviewTransform() {
+    const viewer = document.getElementById('previewViewer');
+    viewer.style.transform = `scale(${previewZoomLevel}) rotate(${previewRotation}deg)`;
+    Logger.log('applyPreviewTransform', `Applied: scale(${previewZoomLevel}) rotate(${previewRotation}deg)`);
+}
+
+function previewZoomIn() {
+    previewZoomLevel += 0.1;
+    if (previewZoomLevel > 3) previewZoomLevel = 3; // Max zoom 300%
+    applyPreviewTransform();
+    Logger.log('previewZoomIn', 'New zoom level:', previewZoomLevel);
+}
+
+function previewZoomOut() {
+    previewZoomLevel -= 0.1;
+    if (previewZoomLevel < 0.5) previewZoomLevel = 0.5; // Min zoom 50%
+    applyPreviewTransform();
+    Logger.log('previewZoomOut', 'New zoom level:', previewZoomLevel);
+}
+
+function previewRotateLeft() {
+    previewRotation -= 90;
+    applyPreviewTransform();
+    Logger.log('previewRotateLeft', 'New rotation:', previewRotation);
+}
+
+function previewRotateRight() {
+    previewRotation += 90;
+    applyPreviewTransform();
+    Logger.log('previewRotateRight', 'New rotation:', previewRotation);
+}
+
+function previewReset() {
+    previewZoomLevel = 1;
+    previewRotation = 0;
+    applyPreviewTransform();
+    Logger.log('previewReset', 'Reset to default');
+}
+
+function previewDownload() {
+    if (currentPreviewUrl) {
+        // Convert preview URL back to download URL
+        const fileId = currentPreviewUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileId) {
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
+            Logger.log('previewDownload', 'Download URL:', downloadUrl);
+            window.open(downloadUrl, '_blank');
+        } else {
+            Logger.log('previewDownload', 'Opening original URL');
+            window.open(currentPreviewUrl, '_blank');
+        }
+    }
+}
+
