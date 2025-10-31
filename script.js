@@ -2089,6 +2089,7 @@ let previewZoomLevel = 1;
 let previewRotation = 0;
 let currentPreviewUrl = '';
 let currentDocName = '';
+let previewMode = 'navigate';
 
 function openPreviewModal(fileUrl, docName) {
     Logger.log('openPreviewModal', 'Opening preview for:', docName);
@@ -2098,6 +2099,7 @@ function openPreviewModal(fileUrl, docName) {
     currentDocName = docName;
     previewZoomLevel = 1;
     previewRotation = 0;
+    previewMode = 'navigate'; // Set default ke navigate mode
     
     const modal = document.getElementById('previewModal');
     const title = document.getElementById('previewTitle');
@@ -2115,6 +2117,13 @@ function openPreviewModal(fileUrl, docName) {
     loading.style.display = 'flex';
     viewer.style.display = 'none';
     
+    // Set initial mode to navigate
+    viewer.style.pointerEvents = 'auto';
+    const container = document.querySelector('.preview-container');
+    if (container) {
+        container.style.cursor = 'default';
+    }
+    
     let previewUrl = convertToPreviewUrl(fileUrl);
     Logger.log('openPreviewModal', 'Preview URL:', previewUrl);
     
@@ -2126,9 +2135,14 @@ function openPreviewModal(fileUrl, docName) {
         viewer.style.display = 'block';
         applyPreviewTransform();
         
-        // TAMBAHKAN INI - Init pan setelah load
         setTimeout(() => {
             initPreviewPan();
+            // Set initial button state
+            const toggleBtn = document.getElementById('toggleModeBtn');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '👆 Mode: Navigate (Klik untuk Pan)';
+                toggleBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }
         }, 300);
     };
     
@@ -2453,70 +2467,173 @@ let scrollTop = 0;
 
 function initPreviewPan() {
     const container = document.querySelector('.preview-container');
-    const viewer = document.getElementById('previewViewer');
     
-    if (!container || !viewer) return;
+    if (!container) {
+        Logger.log('initPreviewPan', 'Container not found');
+        return;
+    }
     
-    // Mouse events
-    container.addEventListener('mousedown', startPan);
-    container.addEventListener('mousemove', doPan);
+    Logger.log('initPreviewPan', 'Initializing pan on container');
+    
+    // Remove old listeners jika ada
+    container.removeEventListener('mousedown', startPan);
+    container.removeEventListener('mousemove', doPan);
+    container.removeEventListener('mouseup', endPan);
+    container.removeEventListener('mouseleave', endPan);
+    container.removeEventListener('touchstart', startPanTouch);
+    container.removeEventListener('touchmove', doPanTouch);
+    container.removeEventListener('touchend', endPan);
+    
+    // Add new listeners
+    container.addEventListener('mousedown', startPan, { passive: false });
+    container.addEventListener('mousemove', doPan, { passive: false });
     container.addEventListener('mouseup', endPan);
     container.addEventListener('mouseleave', endPan);
-    
-    // Touch events
-    container.addEventListener('touchstart', startPanTouch);
-    container.addEventListener('touchmove', doPanTouch);
+    container.addEventListener('touchstart', startPanTouch, { passive: false });
+    container.addEventListener('touchmove', doPanTouch, { passive: false });
     container.addEventListener('touchend', endPan);
     
-    Logger.log('initPreviewPan', 'Pan events initialized');
+    // Set initial cursor
+    container.style.cursor = 'grab';
+    
+    Logger.log('initPreviewPan', 'Pan events initialized successfully');
 }
 
 function startPan(e) {
+    // Only pan in pan mode
+    if (previewMode !== 'pan') return;
+    
+    // Jangan pan jika klik pada button controls
+    if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
+        return;
+    }
+    
     isPanning = true;
     const container = document.querySelector('.preview-container');
     container.style.cursor = 'grabbing';
-    startX = e.pageX - container.offsetLeft;
-    startY = e.pageY - container.offsetTop;
+    container.style.userSelect = 'none';
+    
+    startX = e.clientX;
+    startY = e.clientY;
     scrollLeft = container.scrollLeft;
     scrollTop = container.scrollTop;
+    
+    Logger.log('startPan', `Starting pan at X:${startX}, Y:${startY}`);
 }
 
 function startPanTouch(e) {
+    // Only pan in pan mode
+    if (previewMode !== 'pan') return;
+    
     if (e.touches.length !== 1) return;
+    
+    // Jangan pan jika touch pada button controls
+    if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
+        return;
+    }
+    
     isPanning = true;
     const container = document.querySelector('.preview-container');
-    startX = e.touches[0].pageX - container.offsetLeft;
-    startY = e.touches[0].pageY - container.offsetTop;
+    container.style.cursor = 'grabbing';
+    
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
     scrollLeft = container.scrollLeft;
     scrollTop = container.scrollTop;
+    
+    Logger.log('startPanTouch', `Starting touch pan at X:${startX}, Y:${startY}`);
+}
+
+function startPanTouch(e) {
+    // Only pan in pan mode
+    if (previewMode !== 'pan') return;
+    
+    if (e.touches.length !== 1) return;
+    
+    // Jangan pan jika touch pada button controls
+    if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
+        return;
+    }
+    
+    isPanning = true;
+    const container = document.querySelector('.preview-container');
+    container.style.cursor = 'grabbing';
+    
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    scrollLeft = container.scrollLeft;
+    scrollTop = container.scrollTop;
+    
+    Logger.log('startPanTouch', `Starting touch pan at X:${startX}, Y:${startY}`);
 }
 
 function doPan(e) {
     if (!isPanning) return;
+    
     e.preventDefault();
+    e.stopPropagation();
+    
     const container = document.querySelector('.preview-container');
-    const x = e.pageX - container.offsetLeft;
-    const y = e.pageY - container.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    container.scrollLeft = scrollLeft - walkX;
-    container.scrollTop = scrollTop - walkY;
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    const walkX = (startX - x);
+    const walkY = (startY - y);
+    
+    container.scrollLeft = scrollLeft + walkX;
+    container.scrollTop = scrollTop + walkY;
 }
 
 function doPanTouch(e) {
     if (!isPanning || e.touches.length !== 1) return;
+    
     e.preventDefault();
+    e.stopPropagation();
+    
     const container = document.querySelector('.preview-container');
-    const x = e.touches[0].pageX - container.offsetLeft;
-    const y = e.touches[0].pageY - container.offsetTop;
-    const walkX = (x - startX) * 2;
-    const walkY = (y - startY) * 2;
-    container.scrollLeft = scrollLeft - walkX;
-    container.scrollTop = scrollTop - walkY;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    
+    const walkX = (startX - x);
+    const walkY = (startY - y);
+    
+    container.scrollLeft = scrollLeft + walkX;
+    container.scrollTop = scrollTop + walkY;
 }
 
 function endPan() {
+    if (!isPanning) return;
+    
     isPanning = false;
     const container = document.querySelector('.preview-container');
-    container.style.cursor = 'grab';
+    if (container) {
+        container.style.cursor = 'grab';
+        container.style.userSelect = '';
+    }
+    
+    Logger.log('endPan', 'Pan ended');
+}
+
+function togglePreviewMode() {
+    const viewer = document.getElementById('previewViewer');
+    const container = document.querySelector('.preview-container');
+    const toggleBtn = document.getElementById('toggleModeBtn');
+    
+    if (previewMode === 'navigate') {
+        // Switch to Pan Mode
+        previewMode = 'pan';
+        viewer.style.pointerEvents = 'none';
+        container.style.cursor = 'grab';
+        toggleBtn.innerHTML = '🖱️ Mode: Pan (Klik untuk Navigate)';
+        toggleBtn.style.background = 'linear-gradient(135deg, #f59e0b, #f97316)';
+        Logger.log('togglePreviewMode', 'Switched to PAN mode');
+    } else {
+        // Switch to Navigate Mode
+        previewMode = 'navigate';
+        viewer.style.pointerEvents = 'auto';
+        container.style.cursor = 'default';
+        toggleBtn.innerHTML = '👆 Mode: Navigate (Klik untuk Pan)';
+        toggleBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        Logger.log('togglePreviewMode', 'Switched to NAVIGATE mode');
+    }
 }
