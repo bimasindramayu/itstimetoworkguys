@@ -35,6 +35,13 @@ const VERIFIKATOR_MAP = {
     'KTIQ': 'Rakha'
 };
 
+// NIK VERIFIKATOR MAP - Prioritas tertinggi
+const NIK_VERIFIKATOR_MAP = {
+    '3212296304040001': 'Rosid',
+    '3212085902990007': 'Rosid',
+    '3212165805000002': 'Rosid',
+};
+
 // Mapping dokumen mandatory per cabang
 const MANDATORY_DOCS = {
     'Tartil Al Qur\'an': ['Link - Doc Surat Mandat Personal', 'Link - Doc KTP Personal', 'Link - Doc Pas Photo Personal'],
@@ -59,12 +66,26 @@ const MANDATORY_DOCS = {
     'Syarh Al Qur\'an': 'team3'  // Team dengan 3 anggota
 };
 
-function getVerifikator(cabang) {
+function getVerifikator(cabang, nik = null) {
+    Logger.log('getVerifikator', 'Cabang:', cabang, 'NIK:', nik);
+    
+    // PRIORITAS 1: Cek NIK dulu (paling tinggi)
+    if (nik && NIK_VERIFIKATOR_MAP[nik]) {
+        const verifikator = NIK_VERIFIKATOR_MAP[nik];
+        Logger.log('getVerifikator', 'Found by NIK:', verifikator);
+        return verifikator;
+    }
+    
+    // PRIORITAS 2: Cek berdasarkan cabang
     if (!cabang) return '-';
+    
     // Hapus Putra/Putri dari akhir cabang
     const cabangBase = cabang.replace(/\s+(Putra|Putri)$/, '').trim();
-    // Cari di mapping
+    
+    // Cari di mapping cabang
     const verifikator = VERIFIKATOR_MAP[cabangBase];
+    Logger.log('getVerifikator', 'Found by cabang:', verifikator || '-');
+    
     return verifikator || '-';
 }
 
@@ -516,9 +537,12 @@ function sortTable(column) {
             return 0;
             
         } else if (column === 'Verifikator') {
-            // Untuk Verifikator, hitung berdasarkan cabang
-            valA = getVerifikator(a['Cabang Lomba']) || '';
-            valB = getVerifikator(b['Cabang Lomba']) || '';
+            // Untuk Verifikator, hitung berdasarkan NIK dulu, baru cabang
+            const nikA = a['NIK'] || null;
+            const nikB = b['NIK'] || null;
+            
+            valA = getVerifikator(a['Cabang Lomba'], nikA) || '';
+            valB = getVerifikator(b['Cabang Lomba'], nikB) || '';
             
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
@@ -609,7 +633,8 @@ function searchData() {
         // Filter verifikator
         let verifikatorMatch = true;
         if (verifikatorSearch && verifikatorSearch.trim() !== '') {
-            const verifikator = getVerifikator(cabang);
+            const nik = row['NIK'] || null;
+            const verifikator = getVerifikator(cabang, nik);
             verifikatorMatch = verifikator === verifikatorSearch;
         }
 
@@ -670,7 +695,10 @@ function renderTable() {
         } else {
             displayName = row['Nama Lengkap'] || '-';
         }
-        const verifikator = getVerifikator(row['Cabang Lomba']);
+        
+        // PERBAIKAN: Pass NIK ke getVerifikator
+        const nik = row['NIK'] || null;
+        const verifikator = getVerifikator(row['Cabang Lomba'], nik);
         
         tr.innerHTML = `
             <td><strong>${row['Nomor Peserta'] || '-'}</strong></td>
@@ -707,6 +735,7 @@ function updateStats() {
         }
     });
     const kecamatanCount = uniqueKecamatan.size;
+    console.log('Daftar kecamatan unik:', Array.from(uniqueKecamatan));
 
     // Hitung unique cabang (abaikan Putra/Putri)
     const uniqueCabang = new Set();
