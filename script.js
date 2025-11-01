@@ -2276,7 +2276,7 @@ let currentFileType = null; // TAMBAHKAN INI
 let currentPDFBlob = null; // TAMBAHKAN VARIABLE GLOBAL DI ATAS
 
 
-// ========== OPEN PREVIEW MODAL ==========
+// ========== OPEN PREVIEW MODAL ========== (REPLACE bagian akhir function)
 async function openPreviewModal(fileUrl, docName) {
     Logger.log('openPreviewModal', 'Opening preview for:', docName);
     Logger.log('openPreviewModal', 'URL:', fileUrl);
@@ -2316,6 +2316,10 @@ async function openPreviewModal(fileUrl, docName) {
     container.scrollLeft = 0;
     container.scrollTop = 0;
     
+    // ===== CRITICAL: Initialize pan/zoom BEFORE rendering =====
+    initPreviewPan();
+    Logger.log('openPreviewModal', '✅ Pan/zoom initialized BEFORE render');
+    
     try {
         const fileId = extractFileId(fileUrl);
         
@@ -2330,15 +2334,13 @@ async function openPreviewModal(fileUrl, docName) {
         // Hide loading, show viewer
         loading.style.display = 'none';
         viewer.style.display = 'flex';
-        viewer.style.opacity = '1'; // FORCE OPACITY
-        viewer.style.visibility = 'visible'; // FORCE VISIBILITY
+        viewer.style.opacity = '1';
+        viewer.style.visibility = 'visible';
         
         Logger.log('openPreviewModal', '✅ Preview loaded successfully');
         
-        // Initialize pan/zoom
-        setTimeout(() => {
-            initPreviewPan();
-        }, 100);
+        // ===== REMOVED: Don't init pan here anymore =====
+        // initPreviewPan() was moved to BEFORE loadFileFromDrive
         
     } catch (error) {
         Logger.log('openPreviewModal', '❌ Error:', error.message);
@@ -2457,11 +2459,12 @@ async function renderPDF(blob) {
     }
 }
 
-// ========== RENDER ALL PDF PAGES ========== (REPLACE FUNCTION)
+/// ========== RENDER ALL PDF PAGES ========== (REPLACE FUNCTION)
 async function renderAllPDFPages() {
     Logger.log('renderAllPDFPages', '========== START RENDER ALL PDF PAGES ==========');
     
     const viewer = document.getElementById('previewViewer');
+    const container = document.getElementById('previewContainer');
     
     if (!viewer) {
         Logger.log('renderAllPDFPages', '❌ ERROR: Viewer element not found!');
@@ -2472,220 +2475,243 @@ async function renderAllPDFPages() {
     Logger.log('renderAllPDFPages', `Total pages to render: ${pdfDoc.numPages}`);
     Logger.log('renderAllPDFPages', `Current rotation: ${previewRotation}°`);
     
-    // ===== STEP 1: Clear viewer =====
-    const oldContent = viewer.innerHTML;
+    // ===== DEBUG: Check container state =====
+    Logger.log('renderAllPDFPages', 'Container state:', {
+        display: window.getComputedStyle(container).display,
+        overflow: window.getComputedStyle(container).overflow,
+        background: window.getComputedStyle(container).background,
+        zIndex: window.getComputedStyle(container).zIndex
+    });
+    
+    // Clear viewer
     viewer.innerHTML = '';
-    Logger.log('renderAllPDFPages', 'STEP 1: Viewer cleared, old content length:', oldContent.length);
+    Logger.log('renderAllPDFPages', 'STEP 1: Viewer cleared');
     
-    // ===== STEP 2: Setup viewer style - CRITICAL FIXES =====
-    viewer.style.padding = '20px';
-    viewer.style.display = 'flex';
-    viewer.style.flexDirection = 'column';
-    viewer.style.alignItems = 'center';
-    viewer.style.gap = '20px';
-    viewer.style.width = '100%';
-    viewer.style.minHeight = '100%';
-    viewer.style.transform = 'none';
-    viewer.style.transformOrigin = 'center top';
-    viewer.style.transition = 'transform 0.1s ease-out';
-    viewer.style.opacity = '1';
-    viewer.style.visibility = 'visible';
-    viewer.style.background = 'transparent'; // IMPORTANT
+    // ===== CRITICAL FIX: Reset ALL viewer styles from scratch =====
+    viewer.removeAttribute('style');
     
-    Logger.log('renderAllPDFPages', 'STEP 2: Viewer styles applied');
-    Logger.log('renderAllPDFPages', 'Viewer computed style:', {
+    // Apply fresh styles
+    viewer.style.cssText = `
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 20px !important;
+        padding: 20px !important;
+        width: 100% !important;
+        min-height: 100% !important;
+        background: transparent !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        transform-origin: center top !important;
+        transition: transform 0.1s ease-out !important;
+        position: relative !important;
+        z-index: 1 !important;
+    `;
+    
+    Logger.log('renderAllPDFPages', 'STEP 2: Viewer styles applied with !important');
+    Logger.log('renderAllPDFPages', 'Viewer computed styles:', {
         display: window.getComputedStyle(viewer).display,
+        flexDirection: window.getComputedStyle(viewer).flexDirection,
         opacity: window.getComputedStyle(viewer).opacity,
-        visibility: window.getComputedStyle(viewer).visibility
+        visibility: window.getComputedStyle(viewer).visibility,
+        background: window.getComputedStyle(viewer).background,
+        position: window.getComputedStyle(viewer).position,
+        zIndex: window.getComputedStyle(viewer).zIndex
     });
     
     const scale = 1.5;
     Logger.log('renderAllPDFPages', 'STEP 3: Render scale:', scale);
     
-    // ===== STEP 4: Render each page =====
+    // Render each page
     for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
         Logger.log('renderAllPDFPages', `---------- PAGE ${pageNum}/${pdfDoc.numPages} ----------`);
         
         try {
-            // Get page
             const page = await pdfDoc.getPage(pageNum);
             const viewport = page.getViewport({ scale: scale, rotation: previewRotation });
-            
-            Logger.log('renderAllPDFPages', `Page ${pageNum} viewport:`, {
-                width: viewport.width,
-                height: viewport.height,
-                rotation: viewport.rotation
-            });
             
             // Create canvas
             const canvas = document.createElement('canvas');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             
-            Logger.log('renderAllPDFPages', `Page ${pageNum} canvas created:`, {
-                width: canvas.width,
-                height: canvas.height
-            });
-            
-            // Canvas styling - FORCE VISIBILITY + EXPLICIT DISPLAY
-            canvas.style.display = 'block';
-            canvas.style.maxWidth = '90%';
-            canvas.style.height = 'auto';
-            canvas.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-            canvas.style.background = 'white';
-            canvas.style.opacity = '1';
-            canvas.style.visibility = 'visible';
+            // ===== CRITICAL FIX: Force canvas styles with !important =====
+            canvas.style.cssText = `
+                display: block !important;
+                max-width: 90% !important;
+                height: auto !important;
+                margin: 10px auto !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                background: white !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                position: relative !important;
+                z-index: 2 !important;
+            `;
             canvas.setAttribute('data-page', pageNum);
             
-            // ===== CRITICAL: Append canvas FIRST before rendering =====
+            // Append canvas FIRST
             viewer.appendChild(canvas);
-            Logger.log('renderAllPDFPages', `Page ${pageNum} canvas appended to viewer`);
+            Logger.log('renderAllPDFPages', `Page ${pageNum} canvas appended`);
             
-            // Force reflow to ensure canvas is in DOM
+            // Force reflow
             canvas.offsetHeight;
-            Logger.log('renderAllPDFPages', `Page ${pageNum} forced reflow, offsetHeight:`, canvas.offsetHeight);
             
-            // Get context
+            // Get context and render
             const context = canvas.getContext('2d', {
                 alpha: false,
                 willReadFrequently: false
             });
             
             if (!context) {
-                Logger.log('renderAllPDFPages', `❌ ERROR: Failed to get 2D context for page ${pageNum}`);
+                Logger.log('renderAllPDFPages', `❌ ERROR: No context for page ${pageNum}`);
                 continue;
             }
             
-            Logger.log('renderAllPDFPages', `Page ${pageNum} 2D context obtained`);
-            
-            // ===== CRITICAL: Set white background explicitly =====
+            // White background
             context.fillStyle = 'white';
             context.fillRect(0, 0, canvas.width, canvas.height);
-            Logger.log('renderAllPDFPages', `Page ${pageNum} white background filled`);
             
-            // Render page to canvas
+            // Render PDF page
             const renderContext = {
                 canvasContext: context,
-                viewport: viewport
+                viewport: viewport,
+                intent: 'display'
             };
             
-            Logger.log('renderAllPDFPages', `Page ${pageNum} starting PDF.js render...`);
-            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} starting render...`);
             await page.render(renderContext).promise;
+            Logger.log('renderAllPDFPages', `Page ${pageNum} render promise resolved`);
             
-            Logger.log('renderAllPDFPages', `✅✅✅ Page ${pageNum} RENDERED SUCCESSFULLY ✅✅✅`);
+            // Wait for frames
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => requestAnimationFrame(resolve));
             
-            // Check canvas after render
-            const imageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height));
-            const hasContent = imageData.data.some((pixel, i) => {
-                // Check if not all white (255, 255, 255, 255)
-                const isAlpha = (i % 4 === 3);
-                if (isAlpha) return false;
-                return pixel !== 255;
+            // Verify content
+            const imageData = context.getImageData(0, 0, Math.min(100, canvas.width), Math.min(100, canvas.height));
+            const hasContent = imageData.data.some((pixel, i) => (i % 4 !== 3) && pixel !== 255);
+            
+            // ===== DEBUG: Deep canvas inspection =====
+            const rect = canvas.getBoundingClientRect();
+            const computedStyle = window.getComputedStyle(canvas);
+            
+            Logger.log('renderAllPDFPages', `✅ Page ${pageNum} RENDERED - Deep inspection:`, {
+                hasContent: hasContent,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                rectWidth: rect.width,
+                rectHeight: rect.height,
+                rectTop: rect.top,
+                rectLeft: rect.left,
+                rectBottom: rect.bottom,
+                rectRight: rect.right,
+                display: computedStyle.display,
+                opacity: computedStyle.opacity,
+                visibility: computedStyle.visibility,
+                position: computedStyle.position,
+                zIndex: computedStyle.zIndex,
+                transform: computedStyle.transform,
+                pointerEvents: computedStyle.pointerEvents,
+                isConnected: canvas.isConnected,
+                offsetParent: canvas.offsetParent ? canvas.offsetParent.tagName : 'null',
+                parentElement: canvas.parentElement ? canvas.parentElement.id : 'null'
             });
             
-            Logger.log('renderAllPDFPages', `Page ${pageNum} content check:`, {
-                hasNonWhitePixels: hasContent,
-                canvasInDOM: document.contains(canvas),
-                canvasDisplay: window.getComputedStyle(canvas).display,
-                canvasOpacity: window.getComputedStyle(canvas).opacity
-            });
+            if (!hasContent) {
+                Logger.log('renderAllPDFPages', `⚠️ WARNING: Page ${pageNum} has NO CONTENT!`);
+            }
+            
+            if (rect.width === 0 || rect.height === 0) {
+                Logger.log('renderAllPDFPages', `⚠️⚠️⚠️ CRITICAL: Page ${pageNum} has ZERO dimensions! ⚠️⚠️⚠️`);
+            }
             
         } catch (error) {
-            Logger.log('renderAllPDFPages', `❌❌❌ ERROR rendering page ${pageNum}:`, error.message);
-            Logger.log('renderAllPDFPages', 'Error stack:', error.stack);
+            Logger.log('renderAllPDFPages', `❌ ERROR on page ${pageNum}:`, error.message);
         }
     }
     
-    Logger.log('renderAllPDFPages', '========== STEP 5: POST-RENDER CHECKS ==========');
-    Logger.log('renderAllPDFPages', `Total canvases in viewer: ${viewer.children.length}`);
+    Logger.log('renderAllPDFPages', '========== POST-RENDER CHECKS ==========');
     
-    // Check all canvases
-    Array.from(viewer.children).forEach((canvas, idx) => {
-        if (canvas.tagName === 'CANVAS') {
-            Logger.log('renderAllPDFPages', `Canvas ${idx + 1} status:`, {
-                width: canvas.width,
-                height: canvas.height,
-                display: window.getComputedStyle(canvas).display,
-                opacity: window.getComputedStyle(canvas).opacity,
-                visibility: window.getComputedStyle(canvas).visibility,
-                inViewport: canvas.getBoundingClientRect().height > 0
-            });
-        }
+    // Check viewer position in viewport
+    const viewerRect = viewer.getBoundingClientRect();
+    Logger.log('renderAllPDFPages', 'Viewer position:', {
+        top: viewerRect.top,
+        left: viewerRect.left,
+        width: viewerRect.width,
+        height: viewerRect.height,
+        isInViewport: viewerRect.top < window.innerHeight && viewerRect.bottom > 0
     });
     
-    // ===== STEP 6: FORCE BROWSER REPAINT - MULTIPLE TECHNIQUES =====
-    Logger.log('renderAllPDFPages', 'STEP 6: Forcing browser repaint...');
+    // Check container position
+    const containerRect = container.getBoundingClientRect();
+    Logger.log('renderAllPDFPages', 'Container position:', {
+        top: containerRect.top,
+        left: containerRect.left,
+        width: containerRect.width,
+        height: containerRect.height
+    });
     
-    // Technique 1: Display toggle
+    // ===== CRITICAL FIX: Force repaint with multiple techniques =====
+    Logger.log('renderAllPDFPages', 'STEP 6: Forcing repaints...');
+    
+    // Technique 1: Display toggle on CONTAINER
+    container.style.display = 'none';
+    container.offsetHeight;
+    container.style.display = 'block';
+    Logger.log('renderAllPDFPages', 'Technique 1: Container display toggle');
+    
+    // Technique 2: Display toggle on VIEWER
     viewer.style.display = 'none';
-    viewer.offsetHeight; // Force reflow
+    viewer.offsetHeight;
     viewer.style.display = 'flex';
-    Logger.log('renderAllPDFPages', 'Technique 1: Display toggle done');
+    Logger.log('renderAllPDFPages', 'Technique 2: Viewer display toggle');
     
-    // Technique 2: GPU acceleration
-    viewer.style.transform = 'translateZ(0)';
-    viewer.offsetHeight; // Force reflow
-    setTimeout(() => {
-        viewer.style.transform = 'none';
-        Logger.log('renderAllPDFPages', 'Technique 2: GPU acceleration done');
-    }, 10);
-    
-    // Technique 3: Opacity animation (forces repaint)
-    viewer.style.opacity = '0.99';
+    // Technique 3: Force GPU repaint
+    viewer.style.transform = 'translate3d(0,0,0)';
     viewer.offsetHeight;
     setTimeout(() => {
-        viewer.style.opacity = '1';
-        Logger.log('renderAllPDFPages', 'Technique 3: Opacity animation done');
-    }, 20);
+        viewer.style.transform = 'none';
+        Logger.log('renderAllPDFPages', 'Technique 3: GPU repaint done');
+    }, 10);
     
-    // Technique 4: Force each canvas repaint
+    // Technique 4: Force canvas layer repaint
     setTimeout(() => {
         Array.from(viewer.children).forEach((canvas, idx) => {
             if (canvas.tagName === 'CANVAS') {
                 canvas.style.transform = 'translateZ(0)';
                 canvas.offsetHeight;
                 canvas.style.transform = 'none';
-                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} repaint forced`);
+                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} forced repaint`);
             }
         });
-    }, 30);
+    }, 50);
     
     Logger.log('renderAllPDFPages', '========== RENDER COMPLETE ==========');
-    Logger.log('renderAllPDFPages', '✅ All repaint techniques applied');
     
-    // ===== STEP 7: Final verification =====
+    // ===== FINAL VERIFICATION (after all repaints) =====
     setTimeout(() => {
-        Logger.log('renderAllPDFPages', '========== FINAL VERIFICATION (100ms later) ==========');
-        Logger.log('renderAllPDFPages', 'Viewer final state:', {
-            display: window.getComputedStyle(viewer).display,
-            opacity: window.getComputedStyle(viewer).opacity,
-            visibility: window.getComputedStyle(viewer).visibility,
-            childCount: viewer.children.length
+        Logger.log('renderAllPDFPages', '========== FINAL VERIFICATION ==========');
+        
+        const finalViewerRect = viewer.getBoundingClientRect();
+        Logger.log('renderAllPDFPages', 'Final viewer rect:', {
+            width: finalViewerRect.width,
+            height: finalViewerRect.height,
+            visible: finalViewerRect.height > 0 && finalViewerRect.width > 0
         });
         
         Array.from(viewer.children).forEach((canvas, idx) => {
             if (canvas.tagName === 'CANVAS') {
                 const rect = canvas.getBoundingClientRect();
-                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} final state:`, {
+                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} final:`, {
                     visible: rect.height > 0 && rect.width > 0,
-                    rect: { width: rect.width, height: rect.height, top: rect.top, left: rect.left }
+                    rect: { w: rect.width, h: rect.height, t: rect.top, l: rect.left }
                 });
             }
         });
-    }, 100);
-
-    // FALLBACK: Auto-rotate trick if still blank
-    setTimeout(async () => {
-        const firstCanvas = viewer.querySelector('canvas');
-        if (firstCanvas) {
-            const rect = firstCanvas.getBoundingClientRect();
-            if (rect.height === 0 || rect.width === 0) {
-                Logger.log('renderAllPDFPages', '⚠️ FALLBACK: Canvas not visible, triggering auto-rotate...');
-                await previewRotate();
-                setTimeout(() => previewRotate(), 500);
-            }
-        }
+        
+        Logger.log('renderAllPDFPages', '========== END VERIFICATION ==========');
     }, 200);
 }
 
@@ -2906,30 +2932,42 @@ function previewDownload() {
     }
 }
 
-// ========== INIT PAN ==========
+// ========== INIT PAN ========== (REPLACE FUNCTION)
 function initPreviewPan() {
     Logger.log('initPreviewPan', '🎯 Initializing pan and zoom...');
     
     const container = document.getElementById('previewContainer');
     if (!container) return;
     
-    // Remove old listeners by cloning
-    const newContainer = container.cloneNode(true);
-    container.parentNode.replaceChild(newContainer, container);
+    // ===== CRITICAL FIX: Remove old listeners WITHOUT cloning =====
+    // Cloning destroys canvas pixel data!
     
-    const freshContainer = document.getElementById('previewContainer');
+    // Remove old event listeners by storing references
+    if (container._panListeners) {
+        container.removeEventListener('mousedown', container._panListeners.mousedown);
+        document.removeEventListener('mousemove', container._panListeners.mousemove);
+        document.removeEventListener('mouseup', container._panListeners.mouseup);
+        container.removeEventListener('wheel', container._panListeners.wheel);
+        Logger.log('initPreviewPan', 'Old listeners removed');
+    }
     
-    // Mouse events
-    freshContainer.addEventListener('mousedown', startPan);
+    // Store new listener references for future cleanup
+    container._panListeners = {
+        mousedown: startPan,
+        mousemove: doPan,
+        mouseup: endPan,
+        wheel: handleWheel
+    };
+    
+    // Add new listeners
+    container.addEventListener('mousedown', startPan);
     document.addEventListener('mousemove', doPan);
     document.addEventListener('mouseup', endPan);
+    container.addEventListener('wheel', handleWheel, { passive: false });
     
-    // Wheel zoom
-    freshContainer.addEventListener('wheel', handleWheel, { passive: false });
+    container.style.cursor = 'grab';
     
-    freshContainer.style.cursor = 'grab';
-    
-    Logger.log('initPreviewPan', '✅ Pan and zoom initialized');
+    Logger.log('initPreviewPan', '✅ Pan and zoom initialized (without cloning)');
 }
 
 // ========== START PAN ==========
