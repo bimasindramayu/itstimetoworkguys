@@ -3087,3 +3087,94 @@ function closePreviewModal() {
     isPanning = false;
     currentFileType = null;
 }
+
+// ========== GENERATE LINK KECAMATAN MODAL ==========
+let generatedLinkText = '';
+
+function openGenerateLinkModal() {
+    Logger.log('openGenerateLinkModal', 'Opening generate link modal');
+    
+    // Reset form
+    document.getElementById('genKecamatan').value = '';
+    document.getElementById('genResultBox').style.display = 'none';
+    generatedLinkText = '';
+    
+    // Show modal
+    const modal = document.getElementById('generateLinkModal');
+    modal.classList.add('show');
+}
+
+function closeGenerateLinkModal() {
+    Logger.log('closeGenerateLinkModal', 'Closing generate link modal');
+    
+    const modal = document.getElementById('generateLinkModal');
+    modal.classList.remove('show');
+    
+    // Reset form
+    document.getElementById('genKecamatan').value = '';
+    document.getElementById('genResultBox').style.display = 'none';
+    generatedLinkText = '';
+}
+
+function generateKecamatanLink() {
+    const kecamatan = document.getElementById('genKecamatan').value;
+    
+    Logger.log('generateKecamatanLink', 'Generating link for:', kecamatan);
+    
+    if (!kecamatan) {
+        alert('❌ Silakan pilih kecamatan terlebih dahulu!');
+        return;
+    }
+    
+    // Encode: kecamatan-NAMA_KECAMATAN
+    const dataString = `kecamatan-${kecamatan}`;
+    const encoded = btoa(dataString);
+    
+    // Generate full URL ke GitHub Pages
+    const fullLink = `https://bimasindramayu.github.io/mtq/view#${encoded}`;
+    
+    // Display result
+    document.getElementById('genDisplayKecamatan').textContent = kecamatan;
+    document.getElementById('genGeneratedLink').textContent = fullLink;
+    document.getElementById('genResultBox').style.display = 'block';
+    
+    generatedLinkText = fullLink;
+    
+    Logger.log('generateKecamatanLink', 'Generated link:', fullLink);
+    Logger.log('generateKecamatanLink', 'Encoded:', encoded);
+}
+
+function copyGeneratedLink() {
+    if (!generatedLinkText) {
+        alert('❌ Tidak ada link untuk dicopy!');
+        return;
+    }
+    
+    navigator.clipboard.writeText(generatedLinkText).then(() => {
+        Logger.log('copyGeneratedLink', 'Link copied to clipboard');
+        
+        // Show success feedback - FIXED: query selector untuk mendapatkan button
+        const buttons = document.querySelectorAll('#genResultBox button');
+        const btn = buttons[buttons.length - 1]; // Ambil button copy yang terakhir
+        
+        if (btn) {
+            const originalText = btn.textContent;
+            const originalBg = btn.style.background;
+            
+            btn.textContent = '✅ Tercopy!';
+            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = originalBg;
+            }, 2000);
+        }
+        
+        // Juga tampilkan alert sebagai backup
+        showAlert('✅ Link berhasil dicopy ke clipboard!', 'success');
+        
+    }).catch(err => {
+        Logger.log('copyGeneratedLink', 'Error copying to clipboard:', err);
+        alert('❌ Gagal copy link. Silakan copy manual.');
+    });
+}
