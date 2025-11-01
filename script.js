@@ -2715,7 +2715,7 @@ async function renderAllPDFPages() {
     }, 200);
 }
 
-// ========== RENDER IMAGE ==========
+// ========== RENDER IMAGE ========== (REPLACE FUNCTION)
 async function renderImage(blob) {
     Logger.log('renderImage', '🖼️ Rendering image...');
     
@@ -2731,27 +2731,50 @@ async function renderImage(blob) {
     viewer.style.alignItems = 'center';
     viewer.style.width = '100%';
     viewer.style.minHeight = '100%';
-    viewer.style.transform = 'none';
+    viewer.style.transform = 'none'; // Reset viewer transform
     viewer.style.transformOrigin = 'center center';
-    viewer.style.transition = 'transform 0.1s ease-out';
     
     // Create image element
     const img = document.createElement('img');
-    img.id = 'previewImage'; // TAMBAHKAN ID
-    img.style.maxWidth = '90%';
-    img.style.maxHeight = '90vh';
+    img.id = 'previewImage';
+    img.style.maxWidth = 'none'; // CHANGE: Allow zoom beyond container
+    img.style.maxHeight = 'none'; // CHANGE: Allow zoom beyond container
+    img.style.width = 'auto';
     img.style.height = 'auto';
     img.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
     img.style.background = 'white';
     img.style.display = 'block';
-    img.style.transition = 'transform 0.3s ease'; // TAMBAHKAN TRANSITION
-    img.style.transform = `rotate(${previewRotation}deg)`; // APPLY ROTATION
+    img.style.transition = 'none'; // CHANGE: Remove transition for smoother zoom
+    img.style.transformOrigin = 'center center'; // IMPORTANT
+    img.style.transform = `translate(0px, 0px) scale(1) rotate(${previewRotation}deg)`;
+    img.style.pointerEvents = 'none'; // Prevent image from blocking pan events
+    img.style.userSelect = 'none';
     
     return new Promise((resolve, reject) => {
         img.onload = () => {
             // Append image to viewer
             viewer.appendChild(img);
             Logger.log('renderImage', '✅ Image rendered');
+            
+            // Set initial size based on viewport
+            const containerWidth = viewer.clientWidth - 40;
+            const containerHeight = viewer.clientHeight - 40;
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const containerRatio = containerWidth / containerHeight;
+            
+            if (imgRatio > containerRatio) {
+                img.style.width = Math.min(img.naturalWidth, containerWidth) + 'px';
+                img.style.height = 'auto';
+            } else {
+                img.style.height = Math.min(img.naturalHeight, containerHeight) + 'px';
+                img.style.width = 'auto';
+            }
+            
+            Logger.log('renderImage', 'Initial image size:', {
+                natural: `${img.naturalWidth}x${img.naturalHeight}`,
+                displayed: `${img.width}x${img.height}`
+            });
+            
             resolve();
         };
         
@@ -2770,8 +2793,18 @@ function updatePreviewTransform() {
     const viewer = document.getElementById('previewViewer');
     if (!viewer) return;
     
-    const transformValue = `translate(${previewPanX}px, ${previewPanY}px) scale(${previewZoomLevel})`;
-    viewer.style.transform = transformValue;
+    if (currentFileType === 'image') {
+        // Untuk image, apply transform langsung ke img element
+        const img = document.getElementById('previewImage');
+        if (img) {
+            const transformValue = `translate(${previewPanX}px, ${previewPanY}px) scale(${previewZoomLevel}) rotate(${previewRotation}deg)`;
+            img.style.transform = transformValue;
+        }
+    } else {
+        // Untuk PDF, apply ke viewer container
+        const transformValue = `translate(${previewPanX}px, ${previewPanY}px) scale(${previewZoomLevel})`;
+        viewer.style.transform = transformValue;
+    }
 }
 
 // ========== ANIMATE ZOOM ==========
@@ -3012,16 +3045,16 @@ function endPan() {
 
 // ========== HANDLE WHEEL ==========
 function handleWheel(e) {
-    if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        
-        const now = Date.now();
-        if (now - lastZoomTime < 50) return;
-        lastZoomTime = now;
-        
+    e.preventDefault(); // PENTING: Prevent default di semua kondisi
+    
+    const now = Date.now();
+    if (now - lastZoomTime < 50) return;
+    lastZoomTime = now;
+    
+    // Handle zoom untuk Ctrl+Wheel atau pinch gesture
+    if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 50) {
         const delta = e.deltaY < 0 ? 0.1 : -0.1;
         zoomTarget = Math.min(Math.max(0.5, zoomTarget + delta), 5);
-        
         animateZoom();
     }
 }

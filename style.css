@@ -1790,8 +1790,8 @@ tbody tr:last-child td {
     right: 0;
     width: 55%;
     height: calc(100vh - 120px);
-    overflow: auto;
-    background: #2a2a2a; /* Background gelap di belakang canvas */
+    overflow: hidden; /* CHANGE: hidden agar tidak scroll, zoom manual */
+    background: #2a2a2a;
     z-index: 1001;
     cursor: grab;
     -webkit-overflow-scrolling: touch;
