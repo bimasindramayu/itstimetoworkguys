@@ -3,7 +3,7 @@
 /* ========== CONFIG SECTION ========== */
 const CONFIG = {
     DEBUG_MODE: true,
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwUqZZ9RW2o5rO8yXs9HNL6qsnfFe64k0bXCtC9FYk7a8gel-M6LHVSoWxSlHzVbTOo/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxnWrsuoAPF70etkwUhZYIJkZME8BzeYyYvU7M0Cn9oL-AxqKsRbFcsPBeg50JPOR5Q/exec',
     REFERENCE_DATE: new Date('2025-11-01'),
     WIB_OFFSET: 7 * 60 * 60 * 1000
 };
@@ -2085,212 +2085,6 @@ function debugCheckLinkColumns() {
   return linkCount;
 }
 
-let previewZoomLevel = 1;
-let previewRotation = 0;
-let currentPreviewUrl = '';
-let currentDocName = '';
-let previewMode = 'navigate';
-
-function openPreviewModal(fileUrl, docName) {
-    Logger.log('openPreviewModal', 'Opening preview for:', docName);
-    Logger.log('openPreviewModal', 'URL:', fileUrl);
-    
-    currentPreviewUrl = fileUrl;
-    currentDocName = docName;
-    previewZoomLevel = 1;
-    previewRotation = 0;
-    previewMode = 'navigate'; // Set default ke navigate mode
-    
-    const modal = document.getElementById('previewModal');
-    const title = document.getElementById('previewTitle');
-    const viewer = document.getElementById('previewViewer');
-    const loading = document.getElementById('previewLoading');
-    
-    title.textContent = `📄 Preview: ${docName}`;
-    modal.classList.add('show');
-    
-    const detailModal = document.getElementById('detailModal');
-    if (detailModal) {
-        detailModal.classList.add('split-view');
-    }
-    
-    loading.style.display = 'flex';
-    viewer.style.display = 'none';
-    
-    // Set initial mode to navigate
-    viewer.style.pointerEvents = 'auto';
-    const container = document.querySelector('.preview-container');
-    if (container) {
-        container.style.cursor = 'default';
-    }
-    
-    let previewUrl = convertToPreviewUrl(fileUrl);
-    Logger.log('openPreviewModal', 'Preview URL:', previewUrl);
-    
-    viewer.src = previewUrl;
-    
-    viewer.onload = function() {
-        Logger.log('openPreviewModal', 'Iframe loaded successfully');
-        loading.style.display = 'none';
-        viewer.style.display = 'block';
-        applyPreviewTransform();
-        
-        setTimeout(() => {
-            initPreviewPan();
-            // Set initial button state
-            const toggleBtn = document.getElementById('toggleModeBtn');
-            if (toggleBtn) {
-                toggleBtn.innerHTML = '👆 Mode: Navigate (Klik untuk Pan)';
-                toggleBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-            }
-        }, 300);
-    };
-    
-    viewer.onerror = function() {
-        Logger.log('openPreviewModal', 'Error loading iframe');
-        loading.innerHTML = '<p style="color: #ef4444;">❌ Gagal memuat preview dokumen</p>';
-    };
-}
-
-function previewOpenOriginal() {
-    if (currentPreviewUrl) {
-        Logger.log('previewOpenOriginal', 'Opening original file:', currentPreviewUrl);
-        // Buka file asli di tab baru
-        window.open(currentPreviewUrl.replace('/preview', '/view'), '_blank');
-    }
-}
-
-function convertToPreviewUrl(url) {
-    Logger.log('convertToPreviewUrl', 'Original URL:', url);
-    
-    // Extract file ID from various Google Drive URL formats
-    let fileId = null;
-    
-    // Format 1: https://drive.google.com/file/d/FILE_ID/view
-    let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match) {
-        fileId = match[1];
-    }
-    
-    // Format 2: https://drive.google.com/open?id=FILE_ID
-    if (!fileId) {
-        match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (match) {
-            fileId = match[1];
-        }
-    }
-    
-    // Format 3: Already a preview URL
-    if (url.includes('/preview')) {
-        Logger.log('convertToPreviewUrl', 'Already preview URL');
-        return url;
-    }
-    
-    if (fileId) {
-        const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-        Logger.log('convertToPreviewUrl', 'Converted to preview URL:', previewUrl);
-        return previewUrl;
-    }
-    
-    Logger.log('convertToPreviewUrl', 'Could not extract file ID, returning original URL');
-    return url;
-}
-
-function closePreviewModal() {
-    Logger.log('closePreviewModal', 'Closing preview modal');
-    
-    const modal = document.getElementById('previewModal');
-    const viewer = document.getElementById('previewViewer');
-    const detailModal = document.getElementById('detailModal');
-    
-    modal.classList.remove('show');
-    viewer.src = '';
-    
-    // Remove split view
-    if (detailModal) {
-        detailModal.classList.remove('split-view');
-    }
-    
-    // Reset transform
-    previewZoomLevel = 1;
-    previewRotation = 0;
-    currentPreviewUrl = '';
-    currentDocName = '';
-}
-
-function applyPreviewTransform() {
-    const viewer = document.getElementById('previewViewer');
-    viewer.style.transform = `scale(${previewZoomLevel}) rotate(${previewRotation}deg)`;
-    Logger.log('applyPreviewTransform', `Applied: scale(${previewZoomLevel}) rotate(${previewRotation}deg)`);
-}
-
-function previewZoomIn() {
-    previewZoomLevel += 0.1;
-    if (previewZoomLevel > 3) previewZoomLevel = 3; // Max zoom 300%
-    applyPreviewTransform();
-    Logger.log('previewZoomIn', 'New zoom level:', previewZoomLevel);
-}
-
-function previewZoomOut() {
-    previewZoomLevel -= 0.1;
-    if (previewZoomLevel < 0.5) previewZoomLevel = 0.5; // Min zoom 50%
-    applyPreviewTransform();
-    Logger.log('previewZoomOut', 'New zoom level:', previewZoomLevel);
-}
-
-function previewRotateLeft() {
-    previewRotation -= 90;
-    applyPreviewTransform();
-    Logger.log('previewRotateLeft', 'New rotation:', previewRotation);
-}
-
-function previewRotateRight() {
-    previewRotation += 90;
-    applyPreviewTransform();
-    Logger.log('previewRotateRight', 'New rotation:', previewRotation);
-}
-
-function previewReset() {
-    previewZoomLevel = 1;
-    previewRotation = 0;
-    applyPreviewTransform();
-    Logger.log('previewReset', 'Reset to default');
-}
-
-function previewDownload() {
-    if (currentPreviewUrl) {
-        // Convert preview URL back to download URL
-        const fileId = currentPreviewUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (fileId) {
-            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId[1]}`;
-            Logger.log('previewDownload', 'Download URL:', downloadUrl);
-            window.open(downloadUrl, '_blank');
-        } else {
-            Logger.log('previewDownload', 'Opening original URL');
-            window.open(currentPreviewUrl, '_blank');
-        }
-    }
-}
-
-// Add event listeners for preview buttons after DOM loaded
-document.addEventListener('DOMContentLoaded', function() {
-    loadData();
-    
-    // Add event delegation for preview buttons
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('preview-btn') || e.target.closest('.preview-btn')) {
-            const btn = e.target.classList.contains('preview-btn') ? e.target : e.target.closest('.preview-btn');
-            const fileUrl = btn.getAttribute('data-file-url');
-            const docName = btn.getAttribute('data-doc-name');
-            
-            if (fileUrl && docName) {
-                Logger.log('Preview button clicked', 'File:', docName);
-                openPreviewModal(fileUrl, docName);
-            }
-        }
-    });
-});
-
 function findIncompleteDocs() {
     Logger.log('findIncompleteDocs', '=== START FINDING INCOMPLETE DOCS ===');
     
@@ -2458,182 +2252,767 @@ function generateAndCopyEditLink() {
     });
 }
 
-// ========== PREVIEW DRAG TO PAN ==========
+// ========== PDF.js CONFIGURATION ==========
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// Google Drive API Key
+const GOOGLE_DRIVE_API_KEY = 'AIzaSyD2eR04ppTnLInBPfVi7kwh3akCKz9F8DQ';
+
+// Preview state variables
+let pdfDoc = null;
+let previewZoomLevel = 1.0;
+let previewRotation = 0;
+let previewPanX = 0;
+let previewPanY = 0;
+let zoomTarget = 1.0;
+let zoomAnimating = false;
+let currentPreviewUrl = '';
+let currentDocName = '';
 let isPanning = false;
 let startX = 0;
 let startY = 0;
-let scrollLeft = 0;
-let scrollTop = 0;
+let lastZoomTime = 0;
+let currentFileType = null; // TAMBAHKAN INI
+let currentPDFBlob = null; // TAMBAHKAN VARIABLE GLOBAL DI ATAS
 
+
+// ========== OPEN PREVIEW MODAL ==========
+async function openPreviewModal(fileUrl, docName) {
+    Logger.log('openPreviewModal', 'Opening preview for:', docName);
+    Logger.log('openPreviewModal', 'URL:', fileUrl);
+    
+    // Reset state
+    currentPreviewUrl = fileUrl;
+    currentDocName = docName;
+    previewZoomLevel = 1.0;
+    previewRotation = 0;
+    previewPanX = 0;
+    previewPanY = 0;
+    zoomTarget = 1.0;
+    pdfDoc = null;
+    currentFileType = null;
+    
+    const modal = document.getElementById('previewModal');
+    const title = document.getElementById('previewTitle');
+    const viewer = document.getElementById('previewViewer');
+    const loading = document.getElementById('previewLoading');
+    const container = document.getElementById('previewContainer');
+    
+    // Setup modal
+    title.textContent = `📄 Preview: ${docName}`;
+    modal.classList.add('show');
+    
+    const detailModal = document.getElementById('detailModal');
+    if (detailModal) {
+        detailModal.classList.add('split-view');
+    }
+    
+    // Show loading
+    loading.style.display = 'flex';
+    viewer.innerHTML = '';
+    viewer.style.display = 'none';
+    
+    // Reset container scroll
+    container.scrollLeft = 0;
+    container.scrollTop = 0;
+    
+    try {
+        const fileId = extractFileId(fileUrl);
+        
+        if (!fileId) {
+            throw new Error('Tidak dapat mengekstrak File ID dari URL');
+        }
+        
+        Logger.log('openPreviewModal', 'File ID:', fileId);
+        
+        await loadFileFromDrive(fileId);
+        
+        // Hide loading, show viewer
+        loading.style.display = 'none';
+        viewer.style.display = 'flex';
+        viewer.style.opacity = '1'; // FORCE OPACITY
+        viewer.style.visibility = 'visible'; // FORCE VISIBILITY
+        
+        Logger.log('openPreviewModal', '✅ Preview loaded successfully');
+        
+        // Initialize pan/zoom
+        setTimeout(() => {
+            initPreviewPan();
+        }, 100);
+        
+    } catch (error) {
+        Logger.log('openPreviewModal', '❌ Error:', error.message);
+        loading.innerHTML = `
+            <p style="color: #ef4444;">❌ Gagal memuat dokumen</p>
+            <p style="font-size: 0.9em; color: #999; margin-top: 10px;">${error.message}</p>
+            <button onclick="previewOpenOriginal()" style="margin-top: 20px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                📂 Buka di Google Drive
+            </button>
+        `;
+    }
+}
+
+// ========== EXTRACT FILE ID ==========
+function extractFileId(url) {
+    let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    
+    match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    
+    match = url.match(/uc\?.*id=([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    
+    return null;
+}
+
+// ========== LOAD FILE FROM DRIVE ==========
+async function loadFileFromDrive(fileId) {
+    Logger.log('loadFileFromDrive', '📥 Fetching file from Google Drive API...');
+    
+    const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_DRIVE_API_KEY}`;
+    
+    Logger.log('loadFileFromDrive', 'API URL:', apiUrl);
+    
+    try {
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        Logger.log('loadFileFromDrive', 'Blob received:', {
+            type: blob.type,
+            size: blob.size
+        });
+        
+        // Detect file type
+        if (blob.type === 'application/pdf' || blob.type.includes('pdf')) {
+            Logger.log('loadFileFromDrive', '📄 Detected PDF file');
+            currentFileType = 'pdf'; // SET TYPE
+            await renderPDF(blob);
+        } else if (blob.type.startsWith('image/')) {
+            Logger.log('loadFileFromDrive', '🖼️ Detected image file');
+            currentFileType = 'image'; // SET TYPE
+            await renderImage(blob);
+        } else {
+            // Try to detect by content
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const header = String.fromCharCode(...uint8Array.slice(0, 4));
+            
+            if (header === '%PDF') {
+                Logger.log('loadFileFromDrive', '📄 Detected PDF by magic number');
+                currentFileType = 'pdf'; // SET TYPE
+                await renderPDF(blob);
+            } else {
+                Logger.log('loadFileFromDrive', '🖼️ Assuming image');
+                currentFileType = 'image'; // SET TYPE
+                await renderImage(blob);
+            }
+        }
+        
+    } catch (error) {
+        Logger.log('loadFileFromDrive', '❌ Error:', error.message);
+        throw new Error('Gagal mengambil file dari Google Drive: ' + error.message);
+    }
+}
+
+// ========== RENDER PDF ==========
+async function renderPDF(blob) {
+    Logger.log('renderPDF', '========== START RENDER PDF ==========');
+    Logger.log('renderPDF', 'Blob size:', blob.size, 'bytes');
+    Logger.log('renderPDF', 'Blob type:', blob.type);
+    
+    try {
+        currentPDFBlob = blob; // SIMPAN BLOB
+        
+        Logger.log('renderPDF', 'Converting blob to array buffer...');
+        const arrayBuffer = await blob.arrayBuffer();
+        
+        Logger.log('renderPDF', 'Array buffer size:', arrayBuffer.byteLength);
+        
+        // Load PDF document
+        Logger.log('renderPDF', 'Loading PDF document with PDF.js...');
+        const loadingTask = pdfjsLib.getDocument({
+            data: arrayBuffer,
+            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+            cMapPacked: true
+        });
+        
+        pdfDoc = await loadingTask.promise;
+        Logger.log('renderPDF', `✅ PDF loaded successfully: ${pdfDoc.numPages} pages`);
+        
+        // Render all pages
+        Logger.log('renderPDF', 'Starting page render...');
+        await renderAllPDFPages();
+        
+        Logger.log('renderPDF', '✅✅✅ PDF RENDER COMPLETE ✅✅✅');
+        
+    } catch (error) {
+        Logger.log('renderPDF', '❌ Error rendering PDF:', error.message);
+        Logger.log('renderPDF', 'Error stack:', error.stack);
+        throw error;
+    }
+}
+
+// ========== RENDER ALL PDF PAGES ========== (REPLACE FUNCTION)
+async function renderAllPDFPages() {
+    Logger.log('renderAllPDFPages', '========== START RENDER ALL PDF PAGES ==========');
+    
+    const viewer = document.getElementById('previewViewer');
+    
+    if (!viewer) {
+        Logger.log('renderAllPDFPages', '❌ ERROR: Viewer element not found!');
+        return;
+    }
+    
+    Logger.log('renderAllPDFPages', 'Viewer element found');
+    Logger.log('renderAllPDFPages', `Total pages to render: ${pdfDoc.numPages}`);
+    Logger.log('renderAllPDFPages', `Current rotation: ${previewRotation}°`);
+    
+    // ===== STEP 1: Clear viewer =====
+    const oldContent = viewer.innerHTML;
+    viewer.innerHTML = '';
+    Logger.log('renderAllPDFPages', 'STEP 1: Viewer cleared, old content length:', oldContent.length);
+    
+    // ===== STEP 2: Setup viewer style - CRITICAL FIXES =====
+    viewer.style.padding = '20px';
+    viewer.style.display = 'flex';
+    viewer.style.flexDirection = 'column';
+    viewer.style.alignItems = 'center';
+    viewer.style.gap = '20px';
+    viewer.style.width = '100%';
+    viewer.style.minHeight = '100%';
+    viewer.style.transform = 'none';
+    viewer.style.transformOrigin = 'center top';
+    viewer.style.transition = 'transform 0.1s ease-out';
+    viewer.style.opacity = '1';
+    viewer.style.visibility = 'visible';
+    viewer.style.background = 'transparent'; // IMPORTANT
+    
+    Logger.log('renderAllPDFPages', 'STEP 2: Viewer styles applied');
+    Logger.log('renderAllPDFPages', 'Viewer computed style:', {
+        display: window.getComputedStyle(viewer).display,
+        opacity: window.getComputedStyle(viewer).opacity,
+        visibility: window.getComputedStyle(viewer).visibility
+    });
+    
+    const scale = 1.5;
+    Logger.log('renderAllPDFPages', 'STEP 3: Render scale:', scale);
+    
+    // ===== STEP 4: Render each page =====
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+        Logger.log('renderAllPDFPages', `---------- PAGE ${pageNum}/${pdfDoc.numPages} ----------`);
+        
+        try {
+            // Get page
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: scale, rotation: previewRotation });
+            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} viewport:`, {
+                width: viewport.width,
+                height: viewport.height,
+                rotation: viewport.rotation
+            });
+            
+            // Create canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} canvas created:`, {
+                width: canvas.width,
+                height: canvas.height
+            });
+            
+            // Canvas styling - FORCE VISIBILITY + EXPLICIT DISPLAY
+            canvas.style.display = 'block';
+            canvas.style.maxWidth = '90%';
+            canvas.style.height = 'auto';
+            canvas.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+            canvas.style.background = 'white';
+            canvas.style.opacity = '1';
+            canvas.style.visibility = 'visible';
+            canvas.setAttribute('data-page', pageNum);
+            
+            // ===== CRITICAL: Append canvas FIRST before rendering =====
+            viewer.appendChild(canvas);
+            Logger.log('renderAllPDFPages', `Page ${pageNum} canvas appended to viewer`);
+            
+            // Force reflow to ensure canvas is in DOM
+            canvas.offsetHeight;
+            Logger.log('renderAllPDFPages', `Page ${pageNum} forced reflow, offsetHeight:`, canvas.offsetHeight);
+            
+            // Get context
+            const context = canvas.getContext('2d', {
+                alpha: false,
+                willReadFrequently: false
+            });
+            
+            if (!context) {
+                Logger.log('renderAllPDFPages', `❌ ERROR: Failed to get 2D context for page ${pageNum}`);
+                continue;
+            }
+            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} 2D context obtained`);
+            
+            // ===== CRITICAL: Set white background explicitly =====
+            context.fillStyle = 'white';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            Logger.log('renderAllPDFPages', `Page ${pageNum} white background filled`);
+            
+            // Render page to canvas
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} starting PDF.js render...`);
+            
+            await page.render(renderContext).promise;
+            
+            Logger.log('renderAllPDFPages', `✅✅✅ Page ${pageNum} RENDERED SUCCESSFULLY ✅✅✅`);
+            
+            // Check canvas after render
+            const imageData = context.getImageData(0, 0, Math.min(10, canvas.width), Math.min(10, canvas.height));
+            const hasContent = imageData.data.some((pixel, i) => {
+                // Check if not all white (255, 255, 255, 255)
+                const isAlpha = (i % 4 === 3);
+                if (isAlpha) return false;
+                return pixel !== 255;
+            });
+            
+            Logger.log('renderAllPDFPages', `Page ${pageNum} content check:`, {
+                hasNonWhitePixels: hasContent,
+                canvasInDOM: document.contains(canvas),
+                canvasDisplay: window.getComputedStyle(canvas).display,
+                canvasOpacity: window.getComputedStyle(canvas).opacity
+            });
+            
+        } catch (error) {
+            Logger.log('renderAllPDFPages', `❌❌❌ ERROR rendering page ${pageNum}:`, error.message);
+            Logger.log('renderAllPDFPages', 'Error stack:', error.stack);
+        }
+    }
+    
+    Logger.log('renderAllPDFPages', '========== STEP 5: POST-RENDER CHECKS ==========');
+    Logger.log('renderAllPDFPages', `Total canvases in viewer: ${viewer.children.length}`);
+    
+    // Check all canvases
+    Array.from(viewer.children).forEach((canvas, idx) => {
+        if (canvas.tagName === 'CANVAS') {
+            Logger.log('renderAllPDFPages', `Canvas ${idx + 1} status:`, {
+                width: canvas.width,
+                height: canvas.height,
+                display: window.getComputedStyle(canvas).display,
+                opacity: window.getComputedStyle(canvas).opacity,
+                visibility: window.getComputedStyle(canvas).visibility,
+                inViewport: canvas.getBoundingClientRect().height > 0
+            });
+        }
+    });
+    
+    // ===== STEP 6: FORCE BROWSER REPAINT - MULTIPLE TECHNIQUES =====
+    Logger.log('renderAllPDFPages', 'STEP 6: Forcing browser repaint...');
+    
+    // Technique 1: Display toggle
+    viewer.style.display = 'none';
+    viewer.offsetHeight; // Force reflow
+    viewer.style.display = 'flex';
+    Logger.log('renderAllPDFPages', 'Technique 1: Display toggle done');
+    
+    // Technique 2: GPU acceleration
+    viewer.style.transform = 'translateZ(0)';
+    viewer.offsetHeight; // Force reflow
+    setTimeout(() => {
+        viewer.style.transform = 'none';
+        Logger.log('renderAllPDFPages', 'Technique 2: GPU acceleration done');
+    }, 10);
+    
+    // Technique 3: Opacity animation (forces repaint)
+    viewer.style.opacity = '0.99';
+    viewer.offsetHeight;
+    setTimeout(() => {
+        viewer.style.opacity = '1';
+        Logger.log('renderAllPDFPages', 'Technique 3: Opacity animation done');
+    }, 20);
+    
+    // Technique 4: Force each canvas repaint
+    setTimeout(() => {
+        Array.from(viewer.children).forEach((canvas, idx) => {
+            if (canvas.tagName === 'CANVAS') {
+                canvas.style.transform = 'translateZ(0)';
+                canvas.offsetHeight;
+                canvas.style.transform = 'none';
+                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} repaint forced`);
+            }
+        });
+    }, 30);
+    
+    Logger.log('renderAllPDFPages', '========== RENDER COMPLETE ==========');
+    Logger.log('renderAllPDFPages', '✅ All repaint techniques applied');
+    
+    // ===== STEP 7: Final verification =====
+    setTimeout(() => {
+        Logger.log('renderAllPDFPages', '========== FINAL VERIFICATION (100ms later) ==========');
+        Logger.log('renderAllPDFPages', 'Viewer final state:', {
+            display: window.getComputedStyle(viewer).display,
+            opacity: window.getComputedStyle(viewer).opacity,
+            visibility: window.getComputedStyle(viewer).visibility,
+            childCount: viewer.children.length
+        });
+        
+        Array.from(viewer.children).forEach((canvas, idx) => {
+            if (canvas.tagName === 'CANVAS') {
+                const rect = canvas.getBoundingClientRect();
+                Logger.log('renderAllPDFPages', `Canvas ${idx + 1} final state:`, {
+                    visible: rect.height > 0 && rect.width > 0,
+                    rect: { width: rect.width, height: rect.height, top: rect.top, left: rect.left }
+                });
+            }
+        });
+    }, 100);
+
+    // FALLBACK: Auto-rotate trick if still blank
+    setTimeout(async () => {
+        const firstCanvas = viewer.querySelector('canvas');
+        if (firstCanvas) {
+            const rect = firstCanvas.getBoundingClientRect();
+            if (rect.height === 0 || rect.width === 0) {
+                Logger.log('renderAllPDFPages', '⚠️ FALLBACK: Canvas not visible, triggering auto-rotate...');
+                await previewRotate();
+                setTimeout(() => previewRotate(), 500);
+            }
+        }
+    }, 200);
+}
+
+// ========== RENDER IMAGE ==========
+async function renderImage(blob) {
+    Logger.log('renderImage', '🖼️ Rendering image...');
+    
+    const viewer = document.getElementById('previewViewer');
+    
+    // Clear viewer
+    viewer.innerHTML = '';
+    
+    // Setup viewer style
+    viewer.style.padding = '20px';
+    viewer.style.display = 'flex';
+    viewer.style.justifyContent = 'center';
+    viewer.style.alignItems = 'center';
+    viewer.style.width = '100%';
+    viewer.style.minHeight = '100%';
+    viewer.style.transform = 'none';
+    viewer.style.transformOrigin = 'center center';
+    viewer.style.transition = 'transform 0.1s ease-out';
+    
+    // Create image element
+    const img = document.createElement('img');
+    img.id = 'previewImage'; // TAMBAHKAN ID
+    img.style.maxWidth = '90%';
+    img.style.maxHeight = '90vh';
+    img.style.height = 'auto';
+    img.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+    img.style.background = 'white';
+    img.style.display = 'block';
+    img.style.transition = 'transform 0.3s ease'; // TAMBAHKAN TRANSITION
+    img.style.transform = `rotate(${previewRotation}deg)`; // APPLY ROTATION
+    
+    return new Promise((resolve, reject) => {
+        img.onload = () => {
+            // Append image to viewer
+            viewer.appendChild(img);
+            Logger.log('renderImage', '✅ Image rendered');
+            resolve();
+        };
+        
+        img.onerror = () => {
+            Logger.log('renderImage', '❌ Error loading image');
+            reject(new Error('Gagal memuat gambar'));
+        };
+        
+        // Set image source from blob
+        img.src = URL.createObjectURL(blob);
+    });
+}
+
+// ========== UPDATE PREVIEW TRANSFORM ==========
+function updatePreviewTransform() {
+    const viewer = document.getElementById('previewViewer');
+    if (!viewer) return;
+    
+    const transformValue = `translate(${previewPanX}px, ${previewPanY}px) scale(${previewZoomLevel})`;
+    viewer.style.transform = transformValue;
+}
+
+// ========== ANIMATE ZOOM ==========
+function animateZoom() {
+    if (zoomAnimating) return;
+    
+    zoomAnimating = true;
+    
+    const step = () => {
+        const diff = zoomTarget - previewZoomLevel;
+        
+        if (Math.abs(diff) < 0.01) {
+            previewZoomLevel = zoomTarget;
+            zoomAnimating = false;
+            updatePreviewTransform();
+            return;
+        }
+        
+        previewZoomLevel += diff * 0.3;
+        updatePreviewTransform();
+        requestAnimationFrame(step);
+    };
+    
+    step();
+}
+
+// ========== ZOOM IN ==========
+function previewZoomIn() {
+    zoomTarget = Math.min(zoomTarget + 0.25, 5);
+    animateZoom();
+    Logger.log('previewZoomIn', `Zoom: ${(zoomTarget * 100).toFixed(0)}%`);
+}
+
+// ========== ZOOM OUT ==========
+function previewZoomOut() {
+    zoomTarget = Math.max(zoomTarget - 0.25, 0.5);
+    animateZoom();
+    Logger.log('previewZoomOut', `Zoom: ${(zoomTarget * 100).toFixed(0)}%`);
+}
+
+// ========== ROTATE ==========
+async function previewRotate() {
+    previewRotation = (previewRotation + 90) % 360;
+    Logger.log('previewRotate', `Rotating to ${previewRotation}°`);
+    
+    // Show loading
+    const loading = document.getElementById('previewLoading');
+    const viewer = document.getElementById('previewViewer');
+    
+    loading.style.display = 'flex';
+    viewer.style.display = 'none';
+    
+    try {
+        if (currentFileType === 'pdf' && pdfDoc) {
+            // PDF rotation - re-render
+            await renderAllPDFPages();
+        } else if (currentFileType === 'image') {
+            // Image rotation - apply CSS transform
+            const img = document.getElementById('previewImage');
+            if (img) {
+                img.style.transform = `rotate(${previewRotation}deg)`;
+                Logger.log('previewRotate', '✅ Image rotation applied via CSS');
+            }
+        }
+        
+        // Hide loading
+        loading.style.display = 'none';
+        viewer.style.display = 'flex';
+        
+        Logger.log('previewRotate', '✅ Rotation complete');
+        
+    } catch (error) {
+        Logger.log('previewRotate', '❌ Error rotating:', error.message);
+        loading.style.display = 'none';
+        viewer.style.display = 'flex';
+    }
+}
+
+// ========== RESET VIEW ==========
+async function previewReset() {
+    Logger.log('previewReset', '========== RESET VIEW ==========');
+    
+    // Reset zoom and pan
+    Logger.log('previewReset', 'Resetting zoom and pan...');
+    zoomTarget = 1.0;
+    previewZoomLevel = 1.0;
+    previewPanX = 0;
+    previewPanY = 0;
+    updatePreviewTransform();
+    
+    // Reset scroll
+    const container = document.getElementById('previewContainer');
+    if (container) {
+        Logger.log('previewReset', 'Resetting scroll position...');
+        container.scrollLeft = 0;
+        container.scrollTop = 0;
+    }
+    
+    // Reset rotation
+    if (previewRotation !== 0) {
+        Logger.log('previewReset', `Resetting rotation from ${previewRotation}° to 0°...`);
+        previewRotation = 0;
+        
+        // Show loading
+        const loading = document.getElementById('previewLoading');
+        const viewer = document.getElementById('previewViewer');
+        
+        loading.style.display = 'flex';
+        viewer.style.display = 'none';
+        
+        try {
+            if (currentFileType === 'pdf' && pdfDoc) {
+                Logger.log('previewReset', 'Re-rendering PDF with 0° rotation...');
+                await renderAllPDFPages();
+            } else if (currentFileType === 'image') {
+                Logger.log('previewReset', 'Resetting image rotation...');
+                const img = document.getElementById('previewImage');
+                if (img) {
+                    img.style.transform = 'rotate(0deg)';
+                }
+            }
+            
+            // Hide loading
+            loading.style.display = 'none';
+            viewer.style.display = 'flex';
+            
+            Logger.log('previewReset', '✅ Rotation reset complete');
+            
+        } catch (error) {
+            Logger.log('previewReset', '❌ Error resetting rotation:', error.message);
+            loading.style.display = 'none';
+            viewer.style.display = 'flex';
+        }
+    } else {
+        Logger.log('previewReset', 'Rotation already at 0°, no re-render needed');
+    }
+    
+    Logger.log('previewReset', '✅ View reset complete');
+}
+
+// ========== OPEN ORIGINAL ==========
+function previewOpenOriginal() {
+    if (currentPreviewUrl) {
+        window.open(currentPreviewUrl, '_blank');
+    }
+}
+
+// ========== DOWNLOAD ==========
+function previewDownload() {
+    if (currentPreviewUrl) {
+        const fileId = extractFileId(currentPreviewUrl);
+        if (fileId) {
+            const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+            window.open(downloadUrl, '_blank');
+        } else {
+            window.open(currentPreviewUrl, '_blank');
+        }
+    }
+}
+
+// ========== INIT PAN ==========
 function initPreviewPan() {
-    const container = document.querySelector('.preview-container');
+    Logger.log('initPreviewPan', '🎯 Initializing pan and zoom...');
     
-    if (!container) {
-        Logger.log('initPreviewPan', 'Container not found');
-        return;
-    }
+    const container = document.getElementById('previewContainer');
+    if (!container) return;
     
-    Logger.log('initPreviewPan', 'Initializing pan on container');
+    // Remove old listeners by cloning
+    const newContainer = container.cloneNode(true);
+    container.parentNode.replaceChild(newContainer, container);
     
-    // Remove old listeners jika ada
-    container.removeEventListener('mousedown', startPan);
-    container.removeEventListener('mousemove', doPan);
-    container.removeEventListener('mouseup', endPan);
-    container.removeEventListener('mouseleave', endPan);
-    container.removeEventListener('touchstart', startPanTouch);
-    container.removeEventListener('touchmove', doPanTouch);
-    container.removeEventListener('touchend', endPan);
+    const freshContainer = document.getElementById('previewContainer');
     
-    // Add new listeners
-    container.addEventListener('mousedown', startPan, { passive: false });
-    container.addEventListener('mousemove', doPan, { passive: false });
-    container.addEventListener('mouseup', endPan);
-    container.addEventListener('mouseleave', endPan);
-    container.addEventListener('touchstart', startPanTouch, { passive: false });
-    container.addEventListener('touchmove', doPanTouch, { passive: false });
-    container.addEventListener('touchend', endPan);
+    // Mouse events
+    freshContainer.addEventListener('mousedown', startPan);
+    document.addEventListener('mousemove', doPan);
+    document.addEventListener('mouseup', endPan);
     
-    // Set initial cursor
-    container.style.cursor = 'grab';
+    // Wheel zoom
+    freshContainer.addEventListener('wheel', handleWheel, { passive: false });
     
-    Logger.log('initPreviewPan', 'Pan events initialized successfully');
+    freshContainer.style.cursor = 'grab';
+    
+    Logger.log('initPreviewPan', '✅ Pan and zoom initialized');
 }
 
+// ========== START PAN ==========
 function startPan(e) {
-    // Only pan in pan mode
-    if (previewMode !== 'pan') return;
-    
-    // Jangan pan jika klik pada button controls
     if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
         return;
     }
     
     isPanning = true;
-    const container = document.querySelector('.preview-container');
-    container.style.cursor = 'grabbing';
-    container.style.userSelect = 'none';
+    startX = e.clientX - previewPanX;
+    startY = e.clientY - previewPanY;
     
-    startX = e.clientX;
-    startY = e.clientY;
-    scrollLeft = container.scrollLeft;
-    scrollTop = container.scrollTop;
-    
-    Logger.log('startPan', `Starting pan at X:${startX}, Y:${startY}`);
-}
-
-function startPanTouch(e) {
-    // Only pan in pan mode
-    if (previewMode !== 'pan') return;
-    
-    if (e.touches.length !== 1) return;
-    
-    // Jangan pan jika touch pada button controls
-    if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
-        return;
+    const container = document.getElementById('previewContainer');
+    if (container) {
+        container.style.cursor = 'grabbing';
     }
-    
-    isPanning = true;
-    const container = document.querySelector('.preview-container');
-    container.style.cursor = 'grabbing';
-    
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    scrollLeft = container.scrollLeft;
-    scrollTop = container.scrollTop;
-    
-    Logger.log('startPanTouch', `Starting touch pan at X:${startX}, Y:${startY}`);
 }
 
-function startPanTouch(e) {
-    // Only pan in pan mode
-    if (previewMode !== 'pan') return;
-    
-    if (e.touches.length !== 1) return;
-    
-    // Jangan pan jika touch pada button controls
-    if (e.target.closest('.preview-controls') || e.target.closest('.preview-header')) {
-        return;
-    }
-    
-    isPanning = true;
-    const container = document.querySelector('.preview-container');
-    container.style.cursor = 'grabbing';
-    
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    scrollLeft = container.scrollLeft;
-    scrollTop = container.scrollTop;
-    
-    Logger.log('startPanTouch', `Starting touch pan at X:${startX}, Y:${startY}`);
-}
-
+// ========== DO PAN ==========
 function doPan(e) {
     if (!isPanning) return;
     
     e.preventDefault();
-    e.stopPropagation();
     
-    const container = document.querySelector('.preview-container');
-    const x = e.clientX;
-    const y = e.clientY;
+    previewPanX = e.clientX - startX;
+    previewPanY = e.clientY - startY;
     
-    const walkX = (startX - x);
-    const walkY = (startY - y);
-    
-    container.scrollLeft = scrollLeft + walkX;
-    container.scrollTop = scrollTop + walkY;
+    updatePreviewTransform();
 }
 
-function doPanTouch(e) {
-    if (!isPanning || e.touches.length !== 1) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const container = document.querySelector('.preview-container');
-    const x = e.touches[0].clientX;
-    const y = e.touches[0].clientY;
-    
-    const walkX = (startX - x);
-    const walkY = (startY - y);
-    
-    container.scrollLeft = scrollLeft + walkX;
-    container.scrollTop = scrollTop + walkY;
-}
-
+// ========== END PAN ==========
 function endPan() {
     if (!isPanning) return;
     
     isPanning = false;
-    const container = document.querySelector('.preview-container');
+    
+    const container = document.getElementById('previewContainer');
     if (container) {
         container.style.cursor = 'grab';
-        container.style.userSelect = '';
     }
-    
-    Logger.log('endPan', 'Pan ended');
 }
 
-function togglePreviewMode() {
-    const viewer = document.getElementById('previewViewer');
-    const container = document.querySelector('.preview-container');
-    const toggleBtn = document.getElementById('toggleModeBtn');
-    
-    if (previewMode === 'navigate') {
-        // Switch to Pan Mode
-        previewMode = 'pan';
-        viewer.style.pointerEvents = 'none';
-        container.style.cursor = 'grab';
-        toggleBtn.innerHTML = '🖱️ Mode: Pan (Klik untuk Navigate)';
-        toggleBtn.style.background = 'linear-gradient(135deg, #f59e0b, #f97316)';
-        Logger.log('togglePreviewMode', 'Switched to PAN mode');
-    } else {
-        // Switch to Navigate Mode
-        previewMode = 'navigate';
-        viewer.style.pointerEvents = 'auto';
-        container.style.cursor = 'default';
-        toggleBtn.innerHTML = '👆 Mode: Navigate (Klik untuk Pan)';
-        toggleBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        Logger.log('togglePreviewMode', 'Switched to NAVIGATE mode');
+// ========== HANDLE WHEEL ==========
+function handleWheel(e) {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        
+        const now = Date.now();
+        if (now - lastZoomTime < 50) return;
+        lastZoomTime = now;
+        
+        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+        zoomTarget = Math.min(Math.max(0.5, zoomTarget + delta), 5);
+        
+        animateZoom();
     }
+}
+
+// ========== CLOSE PREVIEW MODAL ==========
+function closePreviewModal() {
+    Logger.log('closePreviewModal', '❌ Closing preview modal');
+    
+    const modal = document.getElementById('previewModal');
+    const viewer = document.getElementById('previewViewer');
+    const detailModal = document.getElementById('detailModal');
+    
+    modal.classList.remove('show');
+    viewer.innerHTML = '';
+    
+    if (detailModal) {
+        detailModal.classList.remove('split-view');
+    }
+    
+    // Cleanup
+    pdfDoc = null;
+    currentPDFBlob = null; // TAMBAHKAN INI
+    previewZoomLevel = 1.0;
+    previewRotation = 0;
+    previewPanX = 0;
+    previewPanY = 0;
+    zoomTarget = 1.0;
+    currentPreviewUrl = '';
+    currentDocName = '';
+    isPanning = false;
+    currentFileType = null;
 }
