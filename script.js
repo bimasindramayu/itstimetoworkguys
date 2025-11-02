@@ -1677,6 +1677,14 @@ async function uploadFiles() {
 
 function closeDetailModal() {
     Logger.log('closeDetailModal', 'Closing modal');
+    
+    // Auto close preview jika sedang terbuka
+    const previewModal = document.getElementById('previewModal');
+    if (previewModal && previewModal.classList.contains('show')) {
+        Logger.log('closeDetailModal', 'Auto closing preview modal');
+        closePreviewModal();
+    }
+    
     document.getElementById('detailModal').classList.remove('show');
     isEditMode = false;
     filesToUpload = {};
