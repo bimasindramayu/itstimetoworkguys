@@ -3,7 +3,7 @@
 /* ========== CONFIG SECTION ========== */
 const CONFIG = {
     DEBUG_MODE: true,
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxnWrsuoAPF70etkwUhZYIJkZME8BzeYyYvU7M0Cn9oL-AxqKsRbFcsPBeg50JPOR5Q/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyO_efNTqnQ5MXnPBjV_bw7ObiKWrk1WFQ5U2fC0exXbFRpJP4k3-HZPq2YQ6De/exec',
     REFERENCE_DATE: new Date('2025-11-01'),
     WIB_OFFSET: 7 * 60 * 60 * 1000
 };
