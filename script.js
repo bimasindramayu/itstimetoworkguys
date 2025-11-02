@@ -617,7 +617,7 @@ function searchData() {
         const nameMatch = !nameSearch || nama.includes(nameSearch) || nik.includes(nameSearch) || 
                             member1Nama.includes(nameSearch) || member1Nik.includes(nameSearch);
         const teamMatch = !teamSearch || namaRegu.includes(teamSearch);
-        const kecamatanMatch = !kecamatanSearch || kecamatan.includes(kecamatanSearch);
+        const kecamatanMatch = !kecamatanSearch || kecamatan === kecamatanSearch;
         
         // Filter cabang: abaikan Putra/Putri saat membandingkan
         let cabangMatch = true;
@@ -1769,18 +1769,11 @@ function downloadSearchResultsAsCSV() {
     }
 
     try {
-        // Kolom yang ditampilkan di tabel website
-        const displayColumns = [
-            'Nomor Peserta',
-            'Nama Regu/Tim',
-            'Nama Lengkap',
-            'Cabang Lomba',
-            'Kecamatan',
-            'Status',
-            'Alasan Ditolak'
-        ];
+        // PERUBAHAN: Gunakan SEMUA kolom dari headers (data spreadsheet asli)
+        // Bukan hanya kolom yang ditampilkan di tabel
+        const displayColumns = headers; // Gunakan semua headers dari spreadsheet
 
-        // Persiapkan CSV header hanya kolom yang ditampilkan
+        // Persiapkan CSV header - semua kolom
         let csvContent = displayColumns.map(header => {
             // Escape header yang mengandung koma atau kutip
             if (header.includes(',') || header.includes('"') || header.includes('\n')) {
@@ -1791,13 +1784,25 @@ function downloadSearchResultsAsCSV() {
         
         csvContent += '\n';
 
-        // Tambahkan data - hanya kolom yang ditampilkan
+        // Tambahkan data - semua kolom
         filteredData.forEach(row => {
             const rowValues = displayColumns.map(colName => {
                 let value = row[colName] || '';
                 
                 // Convert nilai ke string
                 value = String(value).trim();
+                
+                // Special handling untuk kolom tanggal lahir - format DD-MM-YYYY
+                if ((colName.includes('Tanggal Lahir') || colName.includes('Tgl Lahir')) && value && value !== '-') {
+                    const formatted = formatDate(value);
+                    value = formatted;
+                }
+                
+                // Special handling untuk kolom umur - format "XX Tahun XX Bulan XX Hari"
+                if (colName.includes('Umur') && value && value !== '-') {
+                    const formatted = formatAge(value);
+                    value = formatted;
+                }
                 
                 // Escape value yang mengandung koma, kutip, atau newline
                 if (value.includes(',') || value.includes('"') || value.includes('\n')) {
@@ -1824,7 +1829,7 @@ function downloadSearchResultsAsCSV() {
                          String(now.getMinutes()).padStart(2, '0') +
                          String(now.getSeconds()).padStart(2, '0');
         
-        const filename = `Data_Peserta_MTQ_${timestamp}.csv`;
+        const filename = `Data_Peserta_MTQ_LENGKAP_${timestamp}.csv`;
         
         link.setAttribute('href', url);
         link.setAttribute('download', filename);
@@ -1836,9 +1841,9 @@ function downloadSearchResultsAsCSV() {
         
         Logger.log('downloadSearchResultsAsCSV', `Downloaded: ${filename}`);
         Logger.log('downloadSearchResultsAsCSV', `Total rows: ${filteredData.length}`);
-        Logger.log('downloadSearchResultsAsCSV', `Columns: ${displayColumns.length}`);
+        Logger.log('downloadSearchResultsAsCSV', `Columns: ${displayColumns.length} (ALL COLUMNS)`);
         
-        showAlert(`✅ File berhasil didownload: ${filename}`, 'success');
+        showAlert(`✅ File berhasil didownload: ${filename}\n📊 Total kolom: ${displayColumns.length}`, 'success');
         
     } catch (error) {
         console.error('Error downloading CSV:', error);
