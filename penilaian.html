@@ -6,10 +6,11 @@
     <title>Penilaian MTQ - Juri</title>
     <link rel="icon" href="data:image/svg+xml,
         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-        <text y='.9em' font-size='90'>🏆</text>
+        <text y='.9em' font-size='90'>✏️</text>
         </svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link rel="stylesheet" href="penilaian-style.css">
     <style>
         * {
             margin: 0;
@@ -455,33 +456,7 @@
                         <p style="color: #065f46; font-size: 1.2em; font-weight: 700; margin: 0;" id="displayMaqra">-</p>
                     </div>
 
-                    <!-- GANTI score-input-group dengan validasi -->
-                    <div class="score-input-group">
-                        <div class="form-group">
-                            <label for="nilaiTajwid">Nilai Tajwid (0-100) *</label>
-                            <input type="number" id="nilaiTajwid" min="0" max="100" step="1" required 
-                                oninput="validateScore(this)">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="nilaiFasohah">Nilai Fasohah (0-100) *</label>
-                            <input type="number" id="nilaiFasohah" min="0" max="100" step="1" required
-                                oninput="validateScore(this)">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="nilaiSuara">Nilai Suara (0-100) *</label>
-                            <input type="number" id="nilaiSuara" min="0" max="100" step="1" required
-                                oninput="validateScore(this)">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="nilaiAdab">Nilai Adab (0-100) *</label>
-                            <input type="number" id="nilaiAdab" min="0" max="100" step="1" required
-                                oninput="validateScore(this)">
-                        </div>
-                    </div>
-
+                    <div id="scoreInputsContainer"></div>
                     <div class="form-group">
                         <label for="catatan">Catatan Penilaian</label>
                         <textarea id="catatan" placeholder="Catatan tambahan tentang penilaian..."></textarea>
@@ -525,7 +500,7 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7VElhsubg-sMDNw_JO8RQfYvpdHLJ78Yj0RQEEZEloIjw1ELJMVbyHdp0ISgl0iNu/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwP9hIiC0RVxocGznZrXLadfZXhKPsJ2P7Y2ykNu966_BZfHy9I42IQgkeAxYs6Ga7Q/exec';
         
         let selectedFiles = [];
         let cabangLomba = '';
@@ -569,8 +544,10 @@
             document.getElementById('infoJuri').textContent = namaJuri;
             document.getElementById('namaJuri').value = namaJuri;
 
-            // Load peserta list immediately
+            // Load peserta list
             await loadPesertaList();
+            displayAspekPenilaian();
+            generateScoreInputs();
 
             // Hide initial loading
             document.getElementById('initialLoading').style.display = 'none';
@@ -608,6 +585,48 @@
                 selectElement.innerHTML = '<option value="">Gagal memuat data peserta</option>';
                 showAlert('danger', '❌ Gagal memuat daftar peserta. Silakan refresh halaman.');
             }
+        }
+
+        // Load aspek penilaian berdasarkan cabang
+        function displayAspekPenilaian() {
+            const aspekConfig = getAspekPenilaian(cabangLomba);
+            
+            if (!aspekConfig) {
+                console.log('No aspek config for:', cabangLomba);
+                return;
+            }
+            
+            // Cari container untuk aspek info
+            let aspekContainer = document.getElementById('aspekPenilaianInfo');
+            
+            // Jika belum ada, buat container baru setelah info box
+            if (!aspekContainer) {
+                const infoBox = document.querySelector('.info-box');
+                aspekContainer = document.createElement('div');
+                aspekContainer.id = 'aspekPenilaianInfo';
+                aspekContainer.className = 'aspek-info';
+                infoBox.parentNode.insertBefore(aspekContainer, infoBox.nextSibling);
+            }
+            
+            let html = `
+                <h4>📊 Aspek Penilaian ${aspekConfig.kategori}</h4>
+                <div style="margin-bottom: 12px;">
+            `;
+            
+            aspekConfig.aspek.forEach(item => {
+                html += `
+                    <div class="aspek-item">
+                        <div>
+                            <span class="aspek-name">${item.nama}</span>
+                            <div style="font-size: 0.85em; color: #1e40af; margin-top: 4px;">${item.deskripsi}</div>
+                        </div>
+                        <span class="aspek-percentage">${item.persentase}%</span>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            aspekContainer.innerHTML = html;
         }
 
         function updateMaqraInfo() {
@@ -696,7 +715,6 @@
             showLoadingOverlay('Mengirim penilaian...');
 
             try {
-                // Convert files to base64
                 const filesData = await Promise.all(
                     selectedFiles.map(async (file, index) => {
                         const base64 = await fileToBase64(file);
@@ -714,15 +732,29 @@
                 const selectedOption = selectElement.options[selectElement.selectedIndex];
                 const namaPeserta = selectedOption.dataset.nama;
 
+                // ✅ COLLECT SCORES DINAMIS BERDASARKAN ASPEK
+                const aspekConfig = getAspekPenilaian(cabangLomba);
+                const nilaiAspek = {};
+                let nilaiTotal = 0;
+                
+                aspekConfig.aspek.forEach(item => {
+                    const fieldId = `nilai${item.nama.replace(/[^a-zA-Z0-9]/g, '')}`;
+                    const inputElement = document.getElementById(fieldId);
+                    const nilai = parseFloat(inputElement.value);
+                    
+                    nilaiAspek[item.nama] = nilai;
+                    
+                    // Hitung nilai berbobot
+                    nilaiTotal += (nilai * item.persentase / 100);
+                });
+
                 const formData = {
                     action: 'submitPenilaian',
                     cabang: cabangLomba,
                     namaJuri: namaJuri,
                     nomorPeserta: nomorPeserta,
-                    nilaiTajwid: parseFloat(document.getElementById('nilaiTajwid').value),
-                    nilaiFasohah: parseFloat(document.getElementById('nilaiFasohah').value),
-                    nilaiSuara: parseFloat(document.getElementById('nilaiSuara').value),
-                    nilaiAdab: parseFloat(document.getElementById('nilaiAdab').value),
+                    nilaiAspek: JSON.stringify(nilaiAspek),
+                    nilaiTotal: nilaiTotal.toFixed(2),
                     catatan: document.getElementById('catatan').value,
                     files: JSON.stringify(filesData)
                 };
@@ -740,7 +772,7 @@
                     lastSubmittedPeserta = {
                         nomor: nomorPeserta,
                         nama: namaPeserta,
-                        nilaiTotal: result.details.nilaiTotal
+                        nilaiTotal: nilaiTotal
                     };
                     
                     showSuccessMessage();
@@ -819,6 +851,101 @@
             // Format to 1 decimal place
             input.value = value.toFixed(1);
         }
+
+        function validateScoreInput(input) {
+            // Remove non-numeric characters except decimal point
+            let value = input.value.replace(/[^0-9.]/g, '');
+            
+            // Allow only one decimal point
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Limit to 2 decimal places
+            if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].substring(0, 2);
+            }
+            
+            // Convert to number and validate range
+            const numValue = parseFloat(value);
+            
+            if (!isNaN(numValue)) {
+                if (numValue < 0) {
+                    value = '0';
+                    showAlert('⚠️ Nilai tidak boleh kurang dari 0', 'warning');
+                } else if (numValue > 100) {
+                    value = '100';
+                    showAlert('⚠️ Nilai maksimal adalah 100', 'warning');
+                }
+            }
+            
+            input.value = value;
+        }
+
+        function formatScoreValue(input) {
+            let value = input.value.trim();
+            
+            if (value === '' || value === '.') {
+                input.value = '';
+                return;
+            }
+            
+            const numValue = parseFloat(value);
+            
+            if (isNaN(numValue)) {
+                input.value = '';
+                return;
+            }
+            
+            // Clamp value between 0 and 100
+            const clampedValue = Math.max(0, Math.min(100, numValue));
+            
+            // Format to 2 decimal places
+            input.value = clampedValue.toFixed(2);
+        }
+
+        // Function untuk generate input fields berdasarkan aspek
+        function generateScoreInputs() {
+            const aspekConfig = getAspekPenilaian(cabangLomba);
+            
+            if (!aspekConfig) {
+                console.error('No aspek config found for:', cabangLomba);
+                return;
+            }
+            
+            const container = document.getElementById('scoreInputsContainer');
+            
+            let html = '<div class="score-input-group">';
+            
+            aspekConfig.aspek.forEach((item, index) => {
+                const fieldId = `nilai${item.nama.replace(/[^a-zA-Z0-9]/g, '')}`;
+                
+                html += `
+                    <div class="form-group">
+                        <label for="${fieldId}">${item.nama} (${item.persentase}%) *</label>
+                        <input type="number" 
+                            id="${fieldId}" 
+                            name="${fieldId}"
+                            min="0" 
+                            max="100" 
+                            step="0.01" 
+                            required 
+                            oninput="validateScoreInput(this)"
+                            onblur="formatScoreValue(this)"
+                            placeholder="0.00"
+                            data-aspek="${item.nama}"
+                            data-persentase="${item.persentase}">
+                        <div style="font-size: 0.8em; color: #6b7280; margin-top: 4px;">${item.deskripsi}</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
     </script>
+    <script src="penilaian-config.js"></script>
 </body>
 </html>

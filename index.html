@@ -607,7 +607,7 @@
             filteredScoresData = [];
         }
 
-        // UPDATE fungsi loadScoresData di script.js
+        // UPDATE bagian loadScoresData untuk include maqra
         async function loadScoresData() {
             try {
                 const response = await fetch(APPS_SCRIPT_URL + '?action=getData');
@@ -620,6 +620,7 @@
                     const namaReguIdx = headers.indexOf('Nama Regu/Tim');
                     const cabangIdx = headers.indexOf('Cabang Lomba');
                     const penilaianIdx = headers.indexOf('Penilaian');
+                    const maqraIdx = headers.indexOf('Maqra'); // TAMBAHKAN INI
                     
                     scoresData = [];
                     
@@ -635,11 +636,11 @@
                                         ? row[namaReguIdx] 
                                         : row[namaIdx];
                                     
-                                    // FIX: Ensure all values are strings for filtering
                                     scoresData.push({
                                         nomorPeserta: String(row[nomorPesertaIdx] || '-'),
                                         nama: String(displayName || '-'),
                                         cabang: String(row[cabangIdx] || '-'),
+                                        maqra: String(row[maqraIdx] || '-'),
                                         rataRata: parseFloat(penilaianData.rataRata) || 0,
                                         jumlahJuri: penilaianData.juri.length,
                                         penilaianData: penilaianData

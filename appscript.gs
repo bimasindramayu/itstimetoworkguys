@@ -3193,20 +3193,17 @@ function submitPenilaian(e) {
     const cabang = e.parameter.cabang;
     const namaJuri = e.parameter.namaJuri;
     const nomorPeserta = e.parameter.nomorPeserta;
-    const nilaiTajwid = parseFloat(e.parameter.nilaiTajwid);
-    const nilaiFasohah = parseFloat(e.parameter.nilaiFasohah);
-    const nilaiSuara = parseFloat(e.parameter.nilaiSuara);
-    const nilaiAdab = parseFloat(e.parameter.nilaiAdab);
+    const nilaiAspek = JSON.parse(e.parameter.nilaiAspek);
+    const nilaiTotal = parseFloat(e.parameter.nilaiTotal);
+    
     const catatan = e.parameter.catatan || '';
     
     Logger.log('Step 3: Parameters received:');
     Logger.log('  - Cabang: ' + cabang);
     Logger.log('  - Juri: ' + namaJuri);
     Logger.log('  - Nomor Peserta: ' + nomorPeserta);
-    Logger.log('  - Nilai Tajwid: ' + nilaiTajwid);
-    Logger.log('  - Nilai Fasohah: ' + nilaiFasohah);
-    Logger.log('  - Nilai Suara: ' + nilaiSuara);
-    Logger.log('  - Nilai Adab: ' + nilaiAdab);
+    Logger.log('  - Nilai Aspek: ' + JSON.stringify(nilaiAspek));
+    Logger.log('  - Nilai Total: ' + nilaiTotal);
     
     Logger.log('Step 4: Opening spreadsheet...');
     const ss = SpreadsheetApp.openById(SHEET_ID);
@@ -3336,10 +3333,7 @@ function submitPenilaian(e) {
     const newPenilaian = {
       namaJuri: namaJuri,
       nomorPeserta: nomorPeserta,
-      nilaiTajwid: nilaiTajwid,
-      nilaiFasohah: nilaiFasohah,
-      nilaiSuara: nilaiSuara,
-      nilaiAdab: nilaiAdab,
+      nilaiAspek: nilaiAspek,
       nilaiTotal: nilaiTotal,
       catatan: catatan,
       buktiPenilaian: buktiLinks,

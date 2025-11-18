@@ -3,7 +3,7 @@
 /* ========== CONFIG SECTION ========== */
 const CONFIG = {
     DEBUG_MODE: true,
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx7VElhsubg-sMDNw_JO8RQfYvpdHLJ78Yj0RQEEZEloIjw1ELJMVbyHdp0ISgl0iNu/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwP9hIiC0RVxocGznZrXLadfZXhKPsJ2P7Y2ykNu966_BZfHy9I42IQgkeAxYs6Ga7Q/exec',
     REFERENCE_DATE: new Date('2025-11-01'),
     WIB_OFFSET: 7 * 60 * 60 * 1000
 };
@@ -3584,6 +3584,12 @@ function viewScoreDetail(idx) {
                     <span style="color: var(--success); font-size: 1.5em; font-weight: 700;">${penilaianData.rataRata.toFixed(2)}</span>
                 </div>
             </div>
+            ${item.maqra && item.maqra !== '-' ? `
+                <div style="margin-top: 16px; padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid var(--success);">
+                    <strong style="color: #065f46;">📖 Maqra:</strong><br>
+                    <span style="color: #047857; font-size: 1.1em; font-weight: 600;">${item.maqra}</span>
+                </div>
+            ` : ''}
         </div>
         
         <h3 style="color: var(--primary); margin-bottom: 16px;">📊 Detail Penilaian dari Setiap Juri</h3>
@@ -3598,22 +3604,48 @@ function viewScoreDetail(idx) {
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
-                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--info);">
-                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Tajwid</div>
-                        <div style="font-size: 1.3em; font-weight: 600; color: var(--info);">${juri.nilaiTajwid}</div>
+        `;
+        
+        // ✅ RENDER ASPEK DINAMIS
+        if (juri.nilaiAspek) {
+            const colors = ['var(--info)', 'var(--success)', 'var(--warning)', 'var(--primary)'];
+            let colorIndex = 0;
+            
+            for (let aspekNama in juri.nilaiAspek) {
+                const nilaiAspek = juri.nilaiAspek[aspekNama];
+                const color = colors[colorIndex % colors.length];
+                colorIndex++;
+                
+                html += `
+                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid ${color};">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">${aspekNama}</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: ${color};">${nilaiAspek}</div>
                     </div>
-                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--success);">
-                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Fasohah</div>
-                        <div style="font-size: 1.3em; font-weight: 600; color: var(--success);">${juri.nilaiFasohah}</div>
-                    </div>
-                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--warning);">
-                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Suara</div>
-                        <div style="font-size: 1.3em; font-weight: 600; color: var(--warning);">${juri.nilaiSuara}</div>
-                    </div>
-                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
-                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Adab</div>
-                        <div style="font-size: 1.3em; font-weight: 600; color: var(--primary);">${juri.nilaiAdab}</div>
-                    </div>
+                `;
+            }
+        } else {
+            // ✅ FALLBACK untuk data lama (Tajwid/Fasohah/Suara/Adab)
+            html += `
+                <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--info);">
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Tajwid</div>
+                    <div style="font-size: 1.3em; font-weight: 600; color: var(--info);">${juri.nilaiTajwid || '-'}</div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--success);">
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Fasohah</div>
+                    <div style="font-size: 1.3em; font-weight: 600; color: var(--success);">${juri.nilaiFasohah || '-'}</div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--warning);">
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Suara</div>
+                    <div style="font-size: 1.3em; font-weight: 600; color: var(--warning);">${juri.nilaiSuara || '-'}</div>
+                </div>
+                <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                    <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Adab</div>
+                    <div style="font-size: 1.3em; font-weight: 600; color: var(--primary);">${juri.nilaiAdab || '-'}</div>
+                </div>
+            `;
+        }
+        
+        html += `
                 </div>
                 
                 ${juri.catatan ? `
