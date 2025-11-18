@@ -3,7 +3,7 @@
 /* ========== CONFIG SECTION ========== */
 const CONFIG = {
     DEBUG_MODE: true,
-    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyO_efNTqnQ5MXnPBjV_bw7ObiKWrk1WFQ5U2fC0exXbFRpJP4k3-HZPq2YQ6De/exec',
+    APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbx7VElhsubg-sMDNw_JO8RQfYvpdHLJ78Yj0RQEEZEloIjw1ELJMVbyHdp0ISgl0iNu/exec',
     REFERENCE_DATE: new Date('2025-11-01'),
     WIB_OFFSET: 7 * 60 * 60 * 1000
 };
@@ -3108,17 +3108,23 @@ function closePreviewModal() {
     const modal = document.getElementById('previewModal');
     const viewer = document.getElementById('previewViewer');
     const detailModal = document.getElementById('detailModal');
+    const scoreDetailModal = document.getElementById('scoreDetailModal');
     
     modal.classList.remove('show');
     viewer.innerHTML = '';
     
+    // Remove split-view dari kedua modal
     if (detailModal) {
         detailModal.classList.remove('split-view');
     }
     
+    if (scoreDetailModal) {
+        scoreDetailModal.classList.remove('split-view');
+    }
+    
     // Cleanup
     pdfDoc = null;
-    currentPDFBlob = null; // TAMBAHKAN INI
+    currentPDFBlob = null;
     previewZoomLevel = 1.0;
     previewRotation = 0;
     previewPanX = 0;
@@ -3219,4 +3225,438 @@ function copyGeneratedLink() {
         Logger.log('copyGeneratedLink', 'Error copying to clipboard:', err);
         alert('❌ Gagal copy link. Silakan copy manual.');
     });
+}
+
+// Generate Link Penilaian Modal
+function openGeneratePenilaianModal() {
+    document.getElementById('generatePenilaianModal').style.display = 'flex';
+    document.getElementById('generatePenilaianModal').classList.add('show');
+}
+
+function closeGeneratePenilaianModalNew() {
+    document.getElementById('generatePenilaianModal').style.display = 'none';
+    document.getElementById('generatePenilaianModal').classList.remove('show');
+    
+    // Reset form
+    document.getElementById('penCabang').value = '';
+    document.getElementById('juriInputs').innerHTML = `
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" class="juri-name" placeholder="Nama Juri 1" style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+            <button type="button" onclick="addJuriInput()" class="btn-success" style="padding: 10px 16px;">+ Tambah</button>
+        </div>
+    `;
+    document.getElementById('penResultBox').style.display = 'none';
+}
+
+function addJuriInput() {
+    const container = document.getElementById('juriInputs');
+    const count = container.querySelectorAll('.juri-name').length + 1;
+    
+    const div = document.createElement('div');
+    div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+    div.innerHTML = `
+        <input type="text" class="juri-name" placeholder="Nama Juri ${count}" style="flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+        <button type="button" onclick="this.parentElement.remove()" class="btn-danger" style="padding: 10px 16px;">🗑️</button>
+    `;
+    
+    container.appendChild(div);
+}
+
+function generatePenilaianLinks() {
+    const cabang = document.getElementById('penCabang').value;
+    const juriInputs = document.querySelectorAll('.juri-name');
+    
+    if (!cabang) {
+        showModalAlert('generatePenilaianModal', 'danger', '❌ Silakan pilih cabang lomba.');
+        return;
+    }
+    
+    const juriNames = [];
+    juriInputs.forEach(input => {
+        const name = input.value.trim();
+        if (name) {
+            juriNames.push(name);
+        }
+    });
+    
+    if (juriNames.length === 0) {
+        showModalAlert('generatePenilaianModal', 'danger', '❌ Silakan masukkan minimal 1 nama juri.');
+        return;
+    }
+    
+    const baseUrl = window.location.origin + window.location.pathname.replace('index.html', 'penilaian.html');
+    const links = [];
+    
+    juriNames.forEach(juri => {
+        const data = {
+            cabang: cabang,
+            juri: juri
+        };
+        
+        const encoded = btoa(JSON.stringify(data));
+        const link = `${baseUrl}?data=${encoded}`;
+        links.push({ juri, link });
+    });
+    
+    // Display results
+    document.getElementById('penDisplayCabang').textContent = cabang;
+    
+    const linksList = document.getElementById('penLinksList');
+    linksList.innerHTML = '';
+    
+    links.forEach(item => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 2px solid rgba(16, 185, 129, 0.3);';
+        div.innerHTML = `
+            <p style="margin-bottom: 8px; color: #065f46; font-weight: 600;">👤 ${item.juri}</p>
+            <div style="background: #f9fafb; padding: 10px; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.85em; color: #374151; margin-bottom: 8px;">${item.link}</div>
+            <button type="button" class="btn-success" onclick="copyToClipboard('${item.link.replace(/'/g, "\\'")}', '${item.juri}')" style="width: 100%; font-size: 0.9em;">
+                📋 Copy Link
+            </button>
+        `;
+        linksList.appendChild(div);
+    });
+    
+    document.getElementById('penResultBox').style.display = 'block';
+}
+
+function copyToClipboard(text, juriName) {
+    navigator.clipboard.writeText(text).then(() => {
+        showModalAlert('generatePenilaianModal', 'success', `✅ Link untuk ${juriName} berhasil dicopy!`);
+    }).catch(err => {
+        showModalAlert('generatePenilaianModal', 'danger', '❌ Gagal copy link. Silakan copy manual.');
+    });
+}
+
+function showModalAlert(modalId, type, message) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const modalBody = modal.querySelector('.modal-body');
+    const existingAlert = modalBody.querySelector('.alert');
+    if (existingAlert) existingAlert.remove();
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.textContent = message;
+    modalBody.insertBefore(alertDiv, modalBody.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Show Penilaian in Detail Modal
+function showPenilaianDetails(penilaianData) {
+    if (!penilaianData || penilaianData === '-') {
+        return '<p style="color: #6b7280;">Belum ada penilaian</p>';
+    }
+    
+    try {
+        const data = typeof penilaianData === 'string' ? JSON.parse(penilaianData) : penilaianData;
+        
+        if (!data.juri || data.juri.length === 0) {
+            return '<p style="color: #6b7280;">Belum ada penilaian</p>';
+        }
+        
+        let html = '<div class="penilaian-container">';
+        
+        // Header dengan rata-rata
+        if (data.rataRata) {
+            html += `
+                <div style="background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), rgba(220, 252, 231, 0.8)); border-left: 5px solid var(--success); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="color: var(--success); margin-bottom: 8px;">📊 Nilai Rata-Rata</h3>
+                    <div style="font-size: 2em; font-weight: 700; color: var(--success);">${data.rataRata.toFixed(2)}</div>
+                    <p style="color: #065f46; margin-top: 4px; font-size: 0.9em;">Dari ${data.juri.length} Juri</p>
+                </div>
+            `;
+        }
+        
+        // Detail per juri
+        data.juri.forEach((juri, index) => {
+            html += `
+                <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; background: #fafafa;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="color: var(--primary); font-size: 1.1em;">👤 ${juri.namaJuri}</h4>
+                        <span style="background: linear-gradient(135deg, var(--success), #059669); color: white; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 1.1em;">${juri.nilaiTotal.toFixed(2)}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                        <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--info);">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Tajwid</div>
+                            <div style="font-size: 1.3em; font-weight: 600; color: var(--info);">${juri.nilaiTajwid}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--success);">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Fasohah</div>
+                            <div style="font-size: 1.3em; font-weight: 600; color: var(--success);">${juri.nilaiFasohah}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--warning);">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Suara</div>
+                            <div style="font-size: 1.3em; font-weight: 600; color: var(--warning);">${juri.nilaiSuara}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Adab</div>
+                            <div style="font-size: 1.3em; font-weight: 600; color: var(--primary);">${juri.nilaiAdab}</div>
+                        </div>
+                    </div>
+                    
+                    ${juri.catatan ? `
+                        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #6b7280;">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">📝 Catatan</div>
+                            <div style="color: var(--dark);">${juri.catatan}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${juri.buktiPenilaian && juri.buktiPenilaian.length > 0 ? `
+                        <div style="margin-bottom: 12px;">
+                            <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 8px;">📸 Bukti Penilaian (${juri.buktiPenilaian.length} foto)</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
+                                ${juri.buktiPenilaian.map((link, i) => `
+                                    <div style="position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;" onclick="window.open('${link}', '_blank')">
+                                        <img src="${link}" style="width: 100%; height: 100px; object-fit: cover;" alt="Bukti ${i+1}">
+                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 4px; text-align: center; font-size: 0.75em;">Bukti ${i+1}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="font-size: 0.8em; color: #9ca3af; text-align: right;">
+                        ⏰ ${new Date(juri.timestamp).toLocaleString('id-ID')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        return html;
+        
+    } catch (e) {
+        console.error('Error parsing penilaian:', e);
+        return '<p style="color: #ef4444;">Error loading penilaian data</p>';
+    }
+}
+
+// GANTI fungsi generatePenilaianLinksNew yang ada
+function generatePenilaianLinksNew() {
+    const cabang = document.getElementById('penCabang').value;
+    const juriInputs = document.querySelectorAll('.juri-name');
+    
+    if (!cabang) {
+        showAlert('❌ Silakan pilih cabang lomba.', 'error');
+        return;
+    }
+    
+    const juriNames = [];
+    juriInputs.forEach(input => {
+        const name = input.value.trim();
+        if (name) {
+            juriNames.push(name);
+        }
+    });
+    
+    if (juriNames.length === 0) {
+        showAlert('❌ Silakan masukkan minimal 1 nama juri.', 'error');
+        return;
+    }
+    
+    // FIX: Pastikan URL selalu ada /penilaian.html
+    let baseUrl;
+    if (window.location.pathname.endsWith('index.html')) {
+        baseUrl = window.location.origin + window.location.pathname.replace('index.html', 'penilaian.html');
+    } else if (window.location.pathname.endsWith('/')) {
+        baseUrl = window.location.origin + window.location.pathname + 'penilaian.html';
+    } else {
+        // Jika path tidak berakhir dengan / atau index.html
+        const pathParts = window.location.pathname.split('/');
+        pathParts.pop(); // Remove last part
+        baseUrl = window.location.origin + pathParts.join('/') + '/penilaian.html';
+    }
+    
+    Logger.log('generatePenilaianLinksNew', 'Base URL:', baseUrl);
+    
+    const links = [];
+    
+    juriNames.forEach(juri => {
+        const data = {
+            cabang: cabang,
+            juri: juri
+        };
+        
+        const encoded = btoa(JSON.stringify(data));
+        const link = `${baseUrl}?data=${encoded}`;
+        links.push({ juri, link });
+    });
+    
+    // Display results
+    document.getElementById('penDisplayCabang').textContent = cabang;
+    
+    const linksList = document.getElementById('penLinksList');
+    linksList.innerHTML = '';
+    
+    links.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 2px solid rgba(16, 185, 129, 0.3);';
+        
+        const qrId = `qr-${index}`;
+        
+        div.innerHTML = `
+            <p style="margin-bottom: 8px; color: #065f46; font-weight: 600;">👤 ${item.juri}</p>
+            
+            <div style="text-align: center; margin: 16px 0;">
+                <div id="${qrId}" style="display: inline-block;"></div>
+                <p style="margin-top: 8px; color: #6b7280; font-size: 0.85em;">Scan QR Code untuk akses langsung</p>
+            </div>
+            
+            <div style="background: #f9fafb; padding: 10px; border-radius: 6px; word-break: break-all; font-family: monospace; font-size: 0.75em; color: #374151; margin-bottom: 8px;">${item.link}</div>
+            
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-success" onclick="copyToClipboardNew('${item.link.replace(/'/g, "\\'")}', '${item.juri}')" style="flex: 1; font-size: 0.9em;">
+                    📋 Copy Link
+                </button>
+                <button type="button" class="btn-info" onclick="downloadQR('${qrId}', '${item.juri}_${cabang}')" style="flex: 1; font-size: 0.9em;">
+                    💾 Download QR
+                </button>
+            </div>
+        `;
+        linksList.appendChild(div);
+        
+        // Generate QR Code
+        new QRCode(document.getElementById(qrId), {
+            text: item.link,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    });
+    
+    document.getElementById('penResultBox').style.display = 'block';
+}
+
+function copyToClipboardNew(text, juriName) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert(`✅ Link untuk ${juriName} berhasil dicopy!`, 'success');
+    }).catch(err => {
+        showAlert('❌ Gagal copy link. Silakan copy manual.', 'error');
+    });
+}
+
+function downloadQR(qrId, filename) {
+    const qrCanvas = document.querySelector(`#${qrId} canvas`);
+    if (!qrCanvas) {
+        showAlert('❌ QR Code belum dibuat.', 'error');
+        return;
+    }
+    
+    // Convert canvas to image and download
+    const link = document.createElement('a');
+    link.download = `QR_${filename.replace(/[^a-z0-9]/gi, '_')}.png`;
+    link.href = qrCanvas.toDataURL();
+    link.click();
+    
+    showAlert('✅ QR Code berhasil didownload!', 'success');
+}
+
+function viewScoreDetail(idx) {
+    const item = filteredScoresData[idx];
+    const penilaianData = item.penilaianData;
+    
+    let html = `
+        <div style="background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), rgba(220, 252, 231, 0.8)); border-left: 5px solid var(--success); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+            <h3 style="color: var(--success); margin-bottom: 12px;">📋 Informasi Peserta</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <strong style="color: #065f46;">Nomor Peserta:</strong><br>
+                    <span style="color: #047857; font-size: 1.1em;">${item.nomorPeserta}</span>
+                </div>
+                <div>
+                    <strong style="color: #065f46;">Nama:</strong><br>
+                    <span style="color: #047857; font-size: 1.1em;">${item.nama}</span>
+                </div>
+                <div>
+                    <strong style="color: #065f46;">Cabang:</strong><br>
+                    <span style="color: #047857;">${item.cabang}</span>
+                </div>
+                <div>
+                    <strong style="color: #065f46;">Nilai Rata-rata:</strong><br>
+                    <span style="color: var(--success); font-size: 1.5em; font-weight: 700;">${penilaianData.rataRata.toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+        
+        <h3 style="color: var(--primary); margin-bottom: 16px;">📊 Detail Penilaian dari Setiap Juri</h3>
+    `;
+    
+    penilaianData.juri.forEach((juri, index) => {
+        html += `
+            <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; background: #fafafa;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h4 style="color: var(--primary); font-size: 1.1em;">👤 ${juri.namaJuri}</h4>
+                    <span style="background: linear-gradient(135deg, var(--success), #059669); color: white; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 1.1em;">${juri.nilaiTotal.toFixed(2)}</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--info);">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Tajwid</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: var(--info);">${juri.nilaiTajwid}</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--success);">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Fasohah</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: var(--success);">${juri.nilaiFasohah}</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--warning);">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Suara</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: var(--warning);">${juri.nilaiSuara}</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">Adab</div>
+                        <div style="font-size: 1.3em; font-weight: 600; color: var(--primary);">${juri.nilaiAdab}</div>
+                    </div>
+                </div>
+                
+                ${juri.catatan ? `
+                    <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #6b7280;">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 4px;">📝 Catatan</div>
+                        <div style="color: var(--dark);">${juri.catatan}</div>
+                    </div>
+                ` : ''}
+                
+                ${juri.buktiPenilaian && juri.buktiPenilaian.length > 0 ? `
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 0.85em; color: #6b7280; margin-bottom: 8px;">📸 Bukti Penilaian (${juri.buktiPenilaian.length} foto)</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
+                            ${juri.buktiPenilaian.map((link, i) => `
+                                <div style="position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;" onclick="openPreviewModalFromScoreDetail('${link}', 'Bukti ${juri.namaJuri} #${i+1}')">
+                                    <img src="${link}" style="width: 100%; height: 100px; object-fit: cover;" alt="Bukti ${i+1}">
+                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 4px; text-align: center; font-size: 0.75em;">Bukti ${i+1}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="font-size: 0.8em; color: #9ca3af; text-align: right;">
+                    ⏰ ${new Date(juri.timestamp).toLocaleString('id-ID')}
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('scoreDetailContent').innerHTML = html;
+    document.getElementById('scoreDetailModal').classList.add('show');
+}
+
+function openPreviewModalFromScoreDetail(fileUrl, docName) {
+    Logger.log('openPreviewModalFromScoreDetail', 'Opening preview from score detail modal');
+    
+    // Tambahkan class split-view ke score detail modal
+    const scoreDetailModal = document.getElementById('scoreDetailModal');
+    if (scoreDetailModal) {
+        scoreDetailModal.classList.add('split-view');
+    }
+    
+    // Buka preview modal (akan muncul di sebelah kanan)
+    openPreviewModal(fileUrl, docName);
 }

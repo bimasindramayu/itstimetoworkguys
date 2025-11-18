@@ -565,7 +565,6 @@ tbody tr:last-child td {
     margin-bottom: 24px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
     display: flex;
     justify-content: space-between;
@@ -1820,4 +1819,112 @@ tbody tr:last-child td {
     border-color: rgba(255, 255, 255, 0.8) !important;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     transform: translateY(-3px) !important;
+}
+
+.penilaian-container {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.penilaian-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.penilaian-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.penilaian-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.penilaian-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ========== FIX CLOSE BUTTON SCORES MODAL ========== */
+#scoresModal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+#scoresModal .modal-header span {
+    flex: 1;
+    min-width: 0;
+}
+
+#scoresModal .close-btn {
+    flex-shrink: 0;
+    margin-left: 16px;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+#scoresModal .close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* ========== SPLIT VIEW FOR SCORE DETAIL MODAL ========== */
+#scoreDetailModal.split-view {
+    width: 45%;
+    left: 0;
+    right: auto;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    overflow-y: auto;
+    align-items: flex-start;
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+#scoreDetailModal.split-view .modal-content {
+    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    animation: none;
+    padding: 20px;
+    overflow-y: auto;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    pointer-events: auto;
+}
+
+#scoreDetailModal.split-view .modal-header {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    z-index: 50;
+    margin: -20px -20px 20px -20px;
+    padding: 20px;
+    border-bottom: 2px solid rgba(15, 52, 96, 0.15);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+#scoreDetailModal.split-view .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.98);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    z-index: 50;
+    margin: 20px -20px -20px -20px;
+    padding: 20px;
+    border-top: 2px solid rgba(15, 52, 96, 0.15);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }

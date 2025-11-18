@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penilaian MTQ - Juri</title>
+    <link rel="icon" href="data:image/svg+xml,
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+        <text y='.9em' font-size='90'>🏆</text>
+        </svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 32px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), rgba(220, 252, 231, 0.8));
+            border-left: 5px solid var(--success);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .info-box h3 {
+            color: var(--success);
+            margin-bottom: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #065f46;
+        }
+
+        .info-value {
+            color: #047857;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload-icon {
+            font-size: 3em;
+            margin-bottom: 12px;
+        }
+
+        .file-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .file-preview-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-preview-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .file-preview-item button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(240, 253, 244, 0.9), rgba(220, 252, 231, 0.9));
+            color: #065f46;
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(254, 242, 242, 0.9), rgba(254, 226, 226, 0.9));
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(239, 246, 255, 0.9), rgba(219, 234, 254, 0.9));
+            color: #1e40af;
+            border-left: 4px solid var(--info);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .score-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .disabled-overlay {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, rgba(240, 253, 244, 0.9), rgba(220, 252, 231, 0.9));
+            border: 2px solid var(--success);
+            padding: 32px;
+            border-radius: 12px;
+            text-align: center;
+            color: #065f46;
+            margin-bottom: 24px;
+        }
+
+        .success-message h2 {
+            font-size: 2em;
+            margin-bottom: 16px;
+        }
+
+        .success-icon {
+            font-size: 4em;
+            margin-bottom: 16px;
+        }
+
+        .file-upload-options {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .file-upload-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            background: white;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .file-upload-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .loading-overlay .spinner {
+            border-color: rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            width: 60px;
+            height: 60px;
+        }
+
+        .loading-overlay p {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .score-input-group {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                border-radius: 0;
+            }
+
+            body {
+                padding: 0;
+            }
+
+            .file-upload-options {
+                flex-direction: column;
+            }
+
+            .file-upload-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 Penilaian MTQ</h1>
+            <p>Form Penilaian Dewan Juri</p>
+        </div>
+
+        <div class="content">
+            <div id="alertContainer"></div>
+            
+            <!-- Initial Loading (shown immediately) -->
+            <div id="initialLoading" class="loading">
+                <div class="spinner"></div>
+                <p>Memuat data...</p>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successMessage" style="display: none;">
+                <div class="success-message">
+                    <div class="success-icon">✅</div>
+                    <h2>Penilaian Berhasil Dikirim!</h2>
+                    <p style="font-size: 1.1em; margin: 16px 0;">Terima kasih atas penilaian Anda untuk:</p>
+                    <p style="font-size: 1.3em; font-weight: 700; color: var(--success); margin: 16px 0;" id="successPesertaInfo">-</p>
+                    <p style="margin: 16px 0;">Nilai rata-rata: <strong id="successNilaiTotal">-</strong></p>
+                    <button class="btn btn-primary" onclick="resetFormForNewPeserta()" style="margin-top: 24px;">
+                        🔄 Nilai Peserta Lain
+                    </button>
+                </div>
+            </div>
+
+            <div id="formContainer" style="display: none;">
+                <div class="info-box">
+                    <h3>📋 Informasi Penilaian</h3>
+                    <div class="info-row">
+                        <span class="info-label">Cabang Lomba:</span>
+                        <span class="info-value" id="infoCabang">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nama Juri:</span>
+                        <span class="info-value" id="infoJuri">-</span>
+                    </div>
+                    <div class="info-row" id="maqraRow" style="display: none;">
+                        <span class="info-label">Maqra:</span>
+                        <span class="info-value" id="infoMaqra" style="font-weight: 700; color: #047857;">-</span>
+                    </div>
+                </div>
+
+                <form id="penilaianForm">
+                    <div class="form-group">
+                        <label for="namaJuri">Nama Juri *</label>
+                        <input type="text" id="namaJuri" required readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nomorPeserta">Pilih Peserta *</label>
+                        <select id="nomorPeserta" required onchange="updateMaqraInfo()">
+                            <option value="">-- Memuat data peserta... --</option>
+                        </select>
+                    </div>
+
+                    <div id="maqraInfoBox" style="display: none; background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), rgba(220, 252, 231, 0.8)); border-left: 5px solid var(--success); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+                        <h4 style="color: var(--success); margin-bottom: 8px; font-size: 1.1em;">📖 Maqra Peserta</h4>
+                        <p style="color: #065f46; font-size: 1.2em; font-weight: 700; margin: 0;" id="displayMaqra">-</p>
+                    </div>
+
+                    <!-- GANTI score-input-group dengan validasi -->
+                    <div class="score-input-group">
+                        <div class="form-group">
+                            <label for="nilaiTajwid">Nilai Tajwid (0-100) *</label>
+                            <input type="number" id="nilaiTajwid" min="0" max="100" step="1" required 
+                                oninput="validateScore(this)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nilaiFasohah">Nilai Fasohah (0-100) *</label>
+                            <input type="number" id="nilaiFasohah" min="0" max="100" step="1" required
+                                oninput="validateScore(this)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nilaiSuara">Nilai Suara (0-100) *</label>
+                            <input type="number" id="nilaiSuara" min="0" max="100" step="1" required
+                                oninput="validateScore(this)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nilaiAdab">Nilai Adab (0-100) *</label>
+                            <input type="number" id="nilaiAdab" min="0" max="100" step="1" required
+                                oninput="validateScore(this)">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="catatan">Catatan Penilaian</label>
+                        <textarea id="catatan" placeholder="Catatan tambahan tentang penilaian..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Upload Bukti Penilaian (Foto) *</label>
+                        <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                            <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                            <div class="file-upload-icon">📸</div>
+                            <p><strong>Klik untuk pilih metode upload</strong></p>
+                            <p style="font-size: 0.9em; color: #6b7280; margin-top: 8px;">Format: JPG, PNG, JPEG (Maks 5MB per file)</p>
+                        </div>
+                        <div class="file-upload-options">
+                            <button type="button" class="file-upload-btn" onclick="openFileSelector()">
+                                📁 Pilih dari Galeri
+                            </button>
+                            <button type="button" class="file-upload-btn" onclick="openCamera()">
+                                📷 Ambil Foto
+                            </button>
+                        </div>
+                        <div id="filePreview" class="file-preview"></div>
+                    </div>
+
+                    <div style="display: flex; gap: 16px; margin-top: 32px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            ✅ Kirim Penilaian
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loadingText">Memproses...</p>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx7VElhsubg-sMDNw_JO8RQfYvpdHLJ78Yj0RQEEZEloIjw1ELJMVbyHdp0ISgl0iNu/exec';
+        
+        let selectedFiles = [];
+        let cabangLomba = '';
+        let namaJuri = '';
+        let pesertaList = [];
+        let lastSubmittedPeserta = null;
+
+        // Parse URL parameters
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const encoded = urlParams.get('data');
+            
+            if (!encoded) {
+                showAlert('danger', '❌ Link tidak valid. Silakan gunakan link yang benar dari admin.');
+                return null;
+            }
+
+            try {
+                const decoded = atob(encoded);
+                const data = JSON.parse(decoded);
+                return data;
+            } catch (e) {
+                showAlert('danger', '❌ Format link tidak valid.');
+                return null;
+            }
+        }
+
+        // Initialize - Show loading immediately
+        (async function() {
+            const params = getUrlParams();
+            
+            if (!params || !params.cabang || !params.juri) {
+                document.getElementById('initialLoading').style.display = 'none';
+                return;
+            }
+
+            cabangLomba = params.cabang;
+            namaJuri = params.juri;
+
+            document.getElementById('infoCabang').textContent = cabangLomba;
+            document.getElementById('infoJuri').textContent = namaJuri;
+            document.getElementById('namaJuri').value = namaJuri;
+
+            // Load peserta list immediately
+            await loadPesertaList();
+
+            // Hide initial loading
+            document.getElementById('initialLoading').style.display = 'none';
+            document.getElementById('formContainer').style.display = 'block';
+        })();
+
+        async function loadPesertaList() {
+            const selectElement = document.getElementById('nomorPeserta');
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getPesertaByCabang&cabang=${encodeURIComponent(cabangLomba)}`);
+                const result = await response.json();
+
+                if (result.success && result.peserta && result.peserta.length > 0) {
+                    selectElement.innerHTML = '<option value="">-- Pilih Peserta --</option>';
+                    
+                    pesertaList = result.peserta;
+                    
+                    result.peserta.forEach(peserta => {
+                        const option = document.createElement('option');
+                        option.value = peserta.nomorPeserta;
+                        option.textContent = peserta.display;
+                        option.dataset.nama = peserta.nama;
+                        option.dataset.maqra = peserta.maqra || '';
+                        selectElement.appendChild(option);
+                    });
+
+                    console.log(`Loaded ${result.peserta.length} peserta for ${cabangLomba}`);
+                } else {
+                    selectElement.innerHTML = '<option value="">Tidak ada peserta terverifikasi</option>';
+                    showAlert('warning', '⚠️ Belum ada peserta yang terverifikasi untuk cabang ini.');
+                }
+            } catch (error) {
+                console.error('Error loading peserta:', error);
+                selectElement.innerHTML = '<option value="">Gagal memuat data peserta</option>';
+                showAlert('danger', '❌ Gagal memuat daftar peserta. Silakan refresh halaman.');
+            }
+        }
+
+        function updateMaqraInfo() {
+            const selectElement = document.getElementById('nomorPeserta');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            
+            if (selectedOption && selectedOption.dataset.maqra && selectedOption.dataset.maqra !== '-') {
+                document.getElementById('displayMaqra').textContent = selectedOption.dataset.maqra;
+                document.getElementById('maqraInfoBox').style.display = 'block';
+            } else {
+                document.getElementById('maqraInfoBox').style.display = 'none';
+            }
+        }
+        function openFileSelector() {
+            const fileInput = document.getElementById('fileInput');
+            fileInput.accept = 'image/*';
+            fileInput.removeAttribute('capture');
+            fileInput.click();
+        }
+
+        function openCamera() {
+            const fileInput = document.getElementById('fileInput');
+            fileInput.accept = 'image/*';
+            fileInput.setAttribute('capture', 'environment');
+            fileInput.click();
+        }
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            
+            // Validate file size (5MB max)
+            for (let file of files) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showAlert('danger', `❌ File ${file.name} terlalu besar. Maksimal 5MB per file.`);
+                    return;
+                }
+            }
+
+            selectedFiles = [...selectedFiles, ...files];
+            displayFilePreview();
+        }
+
+        function displayFilePreview() {
+            const preview = document.getElementById('filePreview');
+            preview.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <button type="button" onclick="removeFile(${index})">×</button>
+                    `;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            displayFilePreview();
+        }
+
+        function showLoadingOverlay(text = 'Memproses...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        document.getElementById('penilaianForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (selectedFiles.length === 0) {
+                showAlert('danger', '❌ Silakan upload minimal 1 foto bukti penilaian.');
+                return;
+            }
+
+            showLoadingOverlay('Mengirim penilaian...');
+
+            try {
+                // Convert files to base64
+                const filesData = await Promise.all(
+                    selectedFiles.map(async (file, index) => {
+                        const base64 = await fileToBase64(file);
+                        return {
+                            name: file.name,
+                            type: file.type,
+                            data: base64.split(',')[1],
+                            index: index
+                        };
+                    })
+                );
+
+                const nomorPeserta = document.getElementById('nomorPeserta').value;
+                const selectElement = document.getElementById('nomorPeserta');
+                const selectedOption = selectElement.options[selectElement.selectedIndex];
+                const namaPeserta = selectedOption.dataset.nama;
+
+                const formData = {
+                    action: 'submitPenilaian',
+                    cabang: cabangLomba,
+                    namaJuri: namaJuri,
+                    nomorPeserta: nomorPeserta,
+                    nilaiTajwid: parseFloat(document.getElementById('nilaiTajwid').value),
+                    nilaiFasohah: parseFloat(document.getElementById('nilaiFasohah').value),
+                    nilaiSuara: parseFloat(document.getElementById('nilaiSuara').value),
+                    nilaiAdab: parseFloat(document.getElementById('nilaiAdab').value),
+                    catatan: document.getElementById('catatan').value,
+                    files: JSON.stringify(filesData)
+                };
+
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+
+                const result = await response.json();
+
+                hideLoadingOverlay();
+
+                if (result.success) {
+                    lastSubmittedPeserta = {
+                        nomor: nomorPeserta,
+                        nama: namaPeserta,
+                        nilaiTotal: result.details.nilaiTotal
+                    };
+                    
+                    showSuccessMessage();
+                } else {
+                    showAlert('danger', `❌ ${result.message || 'Gagal mengirim penilaian.'}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoadingOverlay();
+                showAlert('danger', '❌ Terjadi kesalahan. Silakan coba lagi.');
+            }
+        });
+
+        function showSuccessMessage() {
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('successPesertaInfo').textContent = 
+                `${lastSubmittedPeserta.nomor} - ${lastSubmittedPeserta.nama}`;
+            document.getElementById('successNilaiTotal').textContent = 
+                lastSubmittedPeserta.nilaiTotal.toFixed(2);
+            document.getElementById('successMessage').style.display = 'block';
+        }
+
+        function resetFormForNewPeserta() {
+            // Reset form
+            document.getElementById('penilaianForm').reset();
+            document.getElementById('namaJuri').value = namaJuri;
+            selectedFiles = [];
+            displayFilePreview();
+            document.getElementById('maqraRow').style.display = 'none';
+            
+            // Hide success message and show form
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('formContainer').style.display = 'block';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function validateScore(input) {
+            let value = parseFloat(input.value);
+            
+            if (isNaN(value)) {
+                input.value = '';
+                return;
+            }
+            
+            if (value < 0) {
+                input.value = 0;
+                showAlert('⚠️ Nilai tidak boleh kurang dari 0', 'warning');
+            } else if (value > 100) {
+                input.value = 100;
+                showAlert('⚠️ Nilai maksimal adalah 100', 'warning');
+            }
+            
+            // Format to 1 decimal place
+            input.value = value.toFixed(1);
+        }
+    </script>
+</body>
+</html>
