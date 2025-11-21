@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Aspek Penilaian MTQ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .source-badge {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .aspek-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .aspek-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .aspek-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .aspek-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .aspek-percentage {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1em;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .aspek-desc {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.85em;
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+
+        .total-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .total-info.invalid {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .total-info h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .total-info .percentage {
+            font-size: 3em;
+            font-weight: 700;
+        }
+
+        .edit-form {
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #dee2e6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .aspek-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Modal Pop-up */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            text-align: center;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-icon.success {
+            color: #56ab2f;
+        }
+
+        .modal-icon.error {
+            color: #eb3349;
+        }
+
+        .modal h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(102, 126, 234, 0.95);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top: 6px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-overlay p {
+            color: white;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        /* Hidden download button */
+        .hidden-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden-controls:hover {
+            opacity: 1;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-download:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕌 Editor Aspek Penilaian MTQ</h1>
+            <p>Kelola aspek penilaian untuk setiap cabang lomba dengan mudah</p>
+        </div>
+
+        <div class="controls">
+            <div class="form-group">
+                <label for="cabangSelect">Pilih Cabang Lomba</label>
+                <select id="cabangSelect" onchange="loadCabang()">
+                    <option value="">-- Pilih Cabang --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+        <div id="loadingContainer" class="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Memuat data...</p>
+        </div>
+
+        <div id="editorContainer" class="hidden">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title" id="cabangTitle"></h2>
+                    </div>
+                    <div>
+                        <span class="badge" id="kategoriBadge"></span>
+                        <span class="source-badge" id="sourceBadge"></span>
+                    </div>
+                </div>
+
+                <div id="aspekContainer"></div>
+
+                <button class="btn btn-primary btn-block" onclick="tambahAspek()">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Tambah Aspek Baru
+                </button>
+
+                <div class="total-info" id="totalInfo">
+                    <h3>Total Persentase</h3>
+                    <div class="percentage" id="totalPercentage">0%</div>
+                </div>
+
+                <button class="btn btn-success btn-block" id="btnSimpan" onclick="simpanConfig()" style="margin-top: 20px;">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Simpan ke Google Sheets
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p id="loadingOverlayText">Menyimpan konfigurasi...</p>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <svg class="modal-icon success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3>Berhasil!</h3>
+            <p id="modalMessage">Konfigurasi berhasil disimpan</p>
+            <button class="btn btn-primary" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- Hidden Download Button -->
+    <div class="hidden-controls">
+        <button class="btn btn-download" onclick="downloadConfig()" title="Download Config">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+        </button>
+    </div>
+
+    <script src="penilaian-config.js"></script>
+    <script>
+        // GANTI DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT ANDA
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV-sqAKJAem1A-L_n2iOASDbZISb4EweONWQcMXtK9T2n-ZXsqbAoWAAfIXUnUo9U6/exec';
+
+        let currentCabang = null;
+        let config = {};
+        let dataSource = 'default';
+        let isLoading = false; // Prevent spam
+        let originalConfig = {}; // Track changes
+
+        // Initialize
+        window.onload = function() {
+            populateCabangSelect();
+        };
+
+        function populateCabangSelect() {
+            const select = document.getElementById('cabangSelect');
+            
+            // Gunakan ASPEK_PENILAIAN_CONFIG dari penilaian-config.js
+            Object.keys(ASPEK_PENILAIAN_CONFIG).forEach(cabang => {
+                const option = document.createElement('option');
+                option.value = cabang;
+                option.textContent = cabang;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadCabang() {
+            const cabang = document.getElementById('cabangSelect').value;
+            if (!cabang) {
+                document.getElementById('editorContainer').classList.add('hidden');
+                return;
+            }
+
+            currentCabang = cabang;
+            
+            // Show loading
+            document.getElementById('loadingContainer').classList.add('active');
+            document.getElementById('loadingText').textContent = 'Memuat konfigurasi...';
+
+            try {
+                // PRIORITY 1: Cek spreadsheet dulu
+                const response = await fetch(`${SCRIPT_URL}?action=getConfigPenilaian&cabang=${encodeURIComponent(cabang)}`);
+                const result = await response.json();
+
+                // Check if data exists AND is not empty in spreadsheet
+                if (result.success && result.found && result.config && result.config.aspek && result.config.aspek.length > 0) {
+                        config[cabang] = result.config;
+                        dataSource = 'spreadsheet';
+                        showAlert('✅ Menggunakan konfigurasi dari Google Sheets', 'info');
+                    } else {
+                        config[cabang] = JSON.parse(JSON.stringify(ASPEK_PENILAIAN_CONFIG[cabang]));
+                        dataSource = 'default';
+                        
+                        if (result.success && result.found) {
+                            showAlert('⚠️ Data di Google Sheets kosong, menggunakan konfigurasi default', 'warning');
+                        } else {
+                            showAlert('📝 Menggunakan konfigurasi default (belum ada di Google Sheets)', 'warning');
+                        }
+                    }
+                    originalConfig[cabang] = JSON.parse(JSON.stringify(config[cabang]));
+            } catch (error) {
+                console.error('Error loading from spreadsheet:', error);
+                // Fallback ke default jika error
+                config[cabang] = JSON.parse(JSON.stringify(ASPEK_PENILAIAN_CONFIG[cabang]));
+                dataSource = 'default';
+                showAlert('❌ Gagal memuat dari Google Sheets, menggunakan konfigurasi default', 'warning');
+            } finally {
+                // Hide loading
+                document.getElementById('loadingContainer').classList.remove('active');
+            }
+
+            // Update UI
+            document.getElementById('cabangTitle').textContent = cabang;
+            document.getElementById('kategoriBadge').textContent = config[cabang].kategori;
+            
+            // Update source badge
+            const sourceBadge = document.getElementById('sourceBadge');
+            if (dataSource === 'spreadsheet') {
+                sourceBadge.textContent = '📊 Google Sheets';
+                sourceBadge.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
+            } else {
+                sourceBadge.textContent = '⚙️ Default Config';
+                sourceBadge.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+            }
+            
+            document.getElementById('editorContainer').classList.remove('hidden');
+            
+            renderAspek();
+            calculateTotal();
+        }
+
+        function renderAspek() {
+            const container = document.getElementById('aspekContainer');
+            container.innerHTML = '';
+
+            config[currentCabang].aspek.forEach((aspek, index) => {
+                const aspekDiv = document.createElement('div');
+                aspekDiv.className = 'aspek-item';
+                aspekDiv.innerHTML = `
+                    <div class="aspek-header">
+                        <div class="aspek-name">${aspek.nama}</div>
+                        <div class="aspek-percentage">${aspek.persentase}%</div>
+                    </div>
+                    <div class="aspek-desc">${aspek.deskripsi}</div>
+                    <div class="button-group">
+                        <button class="btn btn-primary btn-small" onclick="editAspek(${index})">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="hapusAspek(${index})">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Hapus
+                        </button>
+                    </div>
+                `;
+                container.appendChild(aspekDiv);
+            });
+            updateSaveButton();
+        }
+
+        function tambahAspek() {
+            const container = document.getElementById('aspekContainer');
+            
+            const aspekDiv = document.createElement('div');
+            aspekDiv.className = 'aspek-item';
+            aspekDiv.innerHTML = `
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label>Nama Aspek</label>
+                        <input type="text" id="newNama" placeholder="Masukkan nama aspek">
+                    </div>
+                    <div class="form-group">
+                        <label>Persentase (%)</label>
+                        <input type="number" id="newPersentase" placeholder="0-100" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <textarea id="newDeskripsi" placeholder="Masukkan deskripsi aspek"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="simpanAspekBaru()">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Simpan
+                        </button>
+                        <button class="btn btn-danger" onclick="renderAspek()">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(aspekDiv);
+        }
+
+        function simpanAspekBaru() {
+            const nama = document.getElementById('newNama').value.trim();
+            const persentase = parseInt(document.getElementById('newPersentase').value);
+            const deskripsi = document.getElementById('newDeskripsi').value.trim();
+
+            if (!nama || !deskripsi || isNaN(persentase)) {
+                showAlert('Semua field harus diisi!', 'danger');
+                return;
+            }
+
+            if (persentase < 0 || persentase > 100) {
+                showAlert('Persentase harus antara 0-100!', 'danger');
+                return;
+            }
+
+            config[currentCabang].aspek.push({
+                nama: nama,
+                persentase: persentase,
+                deskripsi: deskripsi
+            });
+
+            renderAspek();
+            calculateTotal();
+            updateSaveButton();
+            showAlert('Aspek baru berhasil ditambahkan!', 'success');
+        }
+
+        function editAspek(index) {
+            const aspek = config[currentCabang].aspek[index];
+            const container = document.getElementById('aspekContainer');
+            const aspekItems = container.getElementsByClassName('aspek-item');
+            
+            aspekItems[index].innerHTML = `
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label>Nama Aspek</label>
+                        <input type="text" id="editNama${index}" value="${aspek.nama}">
+                    </div>
+                    <div class="form-group">
+                        <label>Persentase (%)</label>
+                        <input type="number" id="editPersentase${index}" value="${aspek.persentase}" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Deskripsi</label>
+                        <textarea id="editDeskripsi${index}">${aspek.deskripsi}</textarea>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-success" onclick="simpanEditAspek(${index})">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Simpan
+                        </button>
+                        <button class="btn btn-danger" onclick="renderAspek()">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function simpanEditAspek(index) {
+            const nama = document.getElementById(`editNama${index}`).value.trim();
+            const persentase = parseInt(document.getElementById(`editPersentase${index}`).value);
+            const deskripsi = document.getElementById(`editDeskripsi${index}`).value.trim();
+
+            if (!nama || !deskripsi || isNaN(persentase)) {
+                showAlert('Semua field harus diisi!', 'danger');
+                return;
+            }
+
+            if (persentase < 0 || persentase > 100) {
+                showAlert('Persentase harus antara 0-100!', 'danger');
+                return;
+            }
+
+            config[currentCabang].aspek[index] = {
+                nama: nama,
+                persentase: persentase,
+                deskripsi: deskripsi
+            };
+
+            renderAspek();
+            calculateTotal();
+            updateSaveButton();
+            showAlert('Aspek berhasil diperbarui!', 'success');
+        }
+
+        function hapusAspek(index) {
+            if (confirm('Apakah Anda yakin ingin menghapus aspek ini?')) {
+                config[currentCabang].aspek.splice(index, 1);
+                renderAspek();
+                calculateTotal();
+                updateSaveButton();
+                showAlert('Aspek berhasil dihapus!', 'success');
+            }
+        }
+
+        function calculateTotal() {
+            const total = config[currentCabang].aspek.reduce((sum, aspek) => sum + aspek.persentase, 0);
+            const totalEl = document.getElementById('totalPercentage');
+            const totalInfo = document.getElementById('totalInfo');
+            
+            totalEl.textContent = total + '%';
+            
+            if (total === 100) {
+                totalInfo.classList.remove('invalid');
+            } else {
+                totalInfo.classList.add('invalid');
+                
+                if (total !== 0) {
+                    showAlert(`Total persentase harus 100%! Saat ini: ${total}%`, 'warning');
+                }
+            }
+            
+            updateSaveButton();
+        }
+
+        async function simpanConfig() {
+            // Prevent spam
+            if (isLoading) {
+                console.log('Sudah ada proses penyimpanan, mohon tunggu...');
+                return;
+            }
+
+            const total = config[currentCabang].aspek.reduce((sum, aspek) => sum + aspek.persentase, 0);
+            
+            if (total !== 100) {
+                showModal('Total persentase harus 100%!', 'error');
+                return;
+            }
+
+            if (!hasConfigChanged()) {
+                showModal('Tidak ada perubahan untuk disimpan', 'error');
+                return;
+            }
+
+            // Set loading state
+            isLoading = true;
+            showLoadingOverlay('Menyimpan ke Google Sheets...');
+
+            try {
+                const dataToSend = {
+                    action: 'saveConfigPenilaian',
+                    cabang: currentCabang,
+                    kategori: config[currentCabang].kategori,
+                    aspek: JSON.stringify(config[currentCabang].aspek)
+                };
+
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(dataToSend).toString()
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update original config setelah berhasil simpan
+                    originalConfig[currentCabang] = JSON.parse(JSON.stringify(config[currentCabang]));
+                    dataSource = 'spreadsheet';
+                    
+                    // Update source badge
+                    const sourceBadge = document.getElementById('sourceBadge');
+                    sourceBadge.textContent = '📊 Google Sheets';
+                    sourceBadge.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)';
+                    
+                    hideLoadingOverlay();
+                    showModal('✅ Konfigurasi berhasil disimpan ke Google Sheets!', 'success');
+                    updateSaveButton();
+                } else {
+                    hideLoadingOverlay();
+                    showModal('❌ Gagal menyimpan: ' + (result.message || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                hideLoadingOverlay();
+                showModal('❌ Terjadi kesalahan saat menyimpan. Silakan coba lagi.', 'error');
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function hasConfigChanged() {
+            if (!currentCabang || !originalConfig[currentCabang]) return false;
+            
+            const current = JSON.stringify(config[currentCabang]);
+            const original = JSON.stringify(originalConfig[currentCabang]);
+            
+            return current !== original;
+        }
+
+        function updateSaveButton() {
+            const btnSimpan = document.getElementById('btnSimpan');
+            const total = config[currentCabang].aspek.reduce((sum, aspek) => sum + aspek.persentase, 0);
+            
+            if (total === 100 && hasConfigChanged()) {
+                btnSimpan.disabled = false;
+                btnSimpan.style.opacity = '1';
+            } else {
+                btnSimpan.disabled = true;
+                btnSimpan.style.opacity = '0.5';
+            }
+        }
+
+        function showModal(message, type = 'success') {
+            const modal = document.getElementById('modalOverlay');
+            const messageEl = document.getElementById('modalMessage');
+            const icon = modal?.querySelector('.modal-icon');
+            
+            if (!modal || !messageEl || !icon) {
+                console.error('Modal elements not found');
+                alert(message); // Fallback ke alert biasa
+                return;
+            }
+            
+            messageEl.textContent = message;
+            
+            if (type === 'success') {
+                icon.classList.remove('error');
+                icon.classList.add('success');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+            } else {
+                icon.classList.remove('success');
+                icon.classList.add('error');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modalOverlay');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function showLoadingOverlay(text = 'Memuat...') {
+            const overlayText = document.getElementById('loadingOverlayText');
+            const overlay = document.getElementById('loadingOverlay');
+            
+            if (!overlayText || !overlay) {
+                console.error('Loading overlay elements not found');
+                return;
+            }
+            
+            overlayText.textContent = text;
+            overlay.classList.add('active');
+        }
+
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('active');
+            }
+        }
+
+        async function downloadConfig() {
+            showLoadingOverlay('Mengunduh konfigurasi dari Google Sheets...');
+            
+            try {
+                // Fetch semua cabang dari spreadsheet
+                const allCabang = Object.keys(ASPEK_PENILAIAN_CONFIG);
+                const configData = {};
+                
+                console.log('Starting download for', allCabang.length, 'branches...');
+                
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const cabang of allCabang) {
+                    try {
+                        console.log('Fetching config for:', cabang);
+                        
+                        const response = await fetch(`${SCRIPT_URL}?action=getConfigPenilaian&cabang=${encodeURIComponent(cabang)}`);
+                        
+                        if (!response.ok) {
+                            console.error(`HTTP error for ${cabang}:`, response.status);
+                            failCount++;
+                            configData[cabang] = ASPEK_PENILAIAN_CONFIG[cabang];
+                            continue;
+                        }
+                        
+                        const result = await response.json();
+                        console.log(`Result for ${cabang}:`, result);
+                        
+                        if (result.success && result.found && result.config && result.config.aspek && result.config.aspek.length > 0) {
+                            configData[cabang] = result.config;
+                            successCount++;
+                            console.log(`✅ Loaded from spreadsheet: ${cabang}`);
+                        } else {
+                            // Gunakan default jika tidak ada di spreadsheet
+                            configData[cabang] = ASPEK_PENILAIAN_CONFIG[cabang];
+                            failCount++;
+                            console.log(`📝 Using default config: ${cabang}`);
+                        }
+                        
+                        // Delay kecil untuk menghindari rate limit
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error) {
+                        console.error(`Error fetching ${cabang}:`, error);
+                        configData[cabang] = ASPEK_PENILAIAN_CONFIG[cabang];
+                        failCount++;
+                    }
+                }
+                
+                console.log(`Download summary: ${successCount} from spreadsheet, ${failCount} from default`);
+                
+                // Generate JavaScript file content
+                let jsContent = '// ========== CONFIGURATION ASPEK PENILAIAN PER CABANG ==========\n';
+                jsContent += `// Generated from Google Sheets on ${new Date().toLocaleString('id-ID')}\n`;
+                jsContent += `// Sources: ${successCount} from spreadsheet, ${failCount} from default config\n\n`;
+                jsContent += 'const ASPEK_PENILAIAN_CONFIG = ';
+                jsContent += JSON.stringify(configData, null, 4);
+                jsContent += ';\n\n';
+                jsContent += '// Helper function untuk mendapatkan aspek penilaian berdasarkan cabang\n';
+                jsContent += 'function getAspekPenilaian(cabangLomba) {\n';
+                jsContent += '    // Hapus suffix Putra/Putri untuk matching\n';
+                jsContent += '    const cabangBase = cabangLomba.replace(/\\s+(Putra|Putri)$/i, \'\').trim();\n';
+                jsContent += '    \n';
+                jsContent += '    const config = ASPEK_PENILAIAN_CONFIG[cabangBase];\n';
+                jsContent += '    \n';
+                jsContent += '    if (!config) {\n';
+                jsContent += '        console.warn(`Aspek penilaian tidak ditemukan untuk cabang: ${cabangBase}`);\n';
+                jsContent += '        return null;\n';
+                jsContent += '    }\n';
+                jsContent += '    \n';
+                jsContent += '    return config;\n';
+                jsContent += '}';
+                
+                console.log('Generated JS content length:', jsContent.length);
+                
+                // Download file
+                const blob = new Blob([jsContent], { type: 'text/javascript;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `penilaian-config-${new Date().getTime()}.js`;
+                a.style.display = 'none';
+                
+                document.body.appendChild(a);
+                
+                console.log('Triggering download...');
+                a.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    console.log('Download cleanup completed');
+                }, 100);
+                
+                hideLoadingOverlay();
+                
+                const message = `✅ Konfigurasi berhasil diunduh!\n\n` +
+                            `📊 Dari Spreadsheet: ${successCount} cabang\n` +
+                            `📝 Dari Default: ${failCount} cabang`;
+                
+                showModal(message, 'success');
+                
+            } catch (error) {
+                console.error('Error downloading config:', error);
+                console.error('Error stack:', error.stack);
+                hideLoadingOverlay();
+                showModal('❌ Gagal mengunduh konfigurasi: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            
+            let icon = '';
+            if (type === 'success') {
+                icon = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            } else if (type === 'danger') {
+                icon = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            } else if (type === 'warning') {
+                icon = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            } else if (type === 'info') {
+                icon = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            }
+            
+            alert.innerHTML = icon + message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

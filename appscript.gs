@@ -126,6 +126,10 @@ function doPost(e) {
     if (e.parameter.action === 'drawMaqra') {
       return drawMaqraForParticipant(e);
     }
+
+    if (e.parameter.action === 'saveConfigPenilaian') {
+      return saveConfigPenilaian(e);
+    }
     
     // ===== HANDLE UPDATE STATUS ACTION =====
     if (e.parameter.action === 'updateStatus') {
@@ -1175,6 +1179,8 @@ function doGet(e) {
     return getRejectedDataAsJSON();
   } else if (action === 'getTakenMaqra') {
     return getTakenMaqraForBranch(e.parameter.branchCode);
+  } else if (action === 'getConfigPenilaian') {
+    return getConfigPenilaian(e);  // ← TAMBAHKAN INI
   } else if (action === 'updateStatus') {
     const rowIndex = parseInt(e.parameter.rowIndex);
     const newStatus = e.parameter.status;
@@ -3327,9 +3333,7 @@ function submitPenilaian(e) {
       buktiLinks.push(file.getUrl());
     }
     
-    // Add new penilaian
-    const nilaiTotal = (nilaiTajwid + nilaiFasohah + nilaiSuara + nilaiAdab) / 4;
-    
+    // Add new penilaian    
     const newPenilaian = {
       namaJuri: namaJuri,
       nomorPeserta: nomorPeserta,
@@ -3462,6 +3466,141 @@ function getPesertaByCabang(cabang) {
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       peserta: pesertaList
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function saveConfigPenilaian(e) {
+  try {
+    Logger.log('=== SAVE CONFIG PENILAIAN ===');
+    
+    const cabang = e.parameter.cabang;
+    const kategori = e.parameter.kategori;
+    const aspek = e.parameter.aspek;
+    
+    Logger.log('Cabang: ' + cabang);
+    Logger.log('Kategori: ' + kategori);
+    Logger.log('Aspek: ' + aspek);
+    
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName('Config Penilaian');
+    
+    // Create sheet if not exists
+    if (!sheet) {
+      sheet = ss.insertSheet('Config Penilaian');
+      sheet.appendRow(['Cabang Lomba', 'Kategori', 'Aspek Penilaian', 'Last Updated']);
+    }
+    
+    // Find existing row
+    const data = sheet.getDataRange().getValues();
+    let targetRow = -1;
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === cabang) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+    
+    const timestamp = new Date().toLocaleString('id-ID');
+    
+    if (targetRow > 0) {
+      // REPLACE: Update existing row (TIDAK APPEND)
+      sheet.getRange(targetRow, 1, 1, 4).setValues([[cabang, kategori, aspek, timestamp]]);
+      Logger.log('✅ Config REPLACED (updated) at row ' + targetRow);
+    } else {
+      // APPEND: Add new row only if not exists
+      sheet.appendRow([cabang, kategori, aspek, timestamp]);
+      Logger.log('✅ Config APPENDED as new row');
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Konfigurasi berhasil disimpan'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    Logger.log('Error: ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Fungsi untuk load config dari spreadsheet
+function getConfigPenilaian(e) {
+  try {
+    Logger.log('=== GET CONFIG PENILAIAN ===');
+    
+    const cabang = e.parameter.cabang;
+    Logger.log('Cabang requested: ' + cabang);
+    
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName('Config Penilaian');
+    
+    if (!sheet) {
+      Logger.log('Sheet Config Penilaian not found');
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        found: false,
+        config: null
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Find config for this cabang
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === cabang) {
+        // Check if aspek is empty or just "-"
+        const aspekData = data[i][2];
+        
+        if (!aspekData || aspekData === '-' || aspekData.toString().trim() === '') {
+          Logger.log('Config found but EMPTY for ' + cabang);
+          return ContentService.createTextOutput(JSON.stringify({
+            success: true,
+            found: false,
+            config: null
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+        
+        try {
+          const config = {
+            kategori: data[i][1],
+            aspek: JSON.parse(aspekData)
+          };
+          
+          Logger.log('✅ Config found and VALID for ' + cabang);
+          
+          return ContentService.createTextOutput(JSON.stringify({
+            success: true,
+            found: true,
+            config: config
+          })).setMimeType(ContentService.MimeType.JSON);
+        } catch (parseError) {
+          Logger.log('Error parsing aspek JSON: ' + parseError.message);
+          return ContentService.createTextOutput(JSON.stringify({
+            success: true,
+            found: false,
+            config: null
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    
+    Logger.log('Config NOT found for ' + cabang);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      found: false,
+      config: null
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (error) {

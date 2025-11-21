@@ -855,6 +855,34 @@
             openPreviewModal(fileUrl, docName);
         }
         </script>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p id="loadingOverlayText">Menyimpan konfigurasi...</p>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <svg class="modal-icon success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3>Berhasil!</h3>
+            <p id="modalMessage">Konfigurasi berhasil disimpan</p>
+            <button class="btn btn-primary" onclick="closeModal()">OK</button>
+        </div>
+    </div>
+
+    <!-- Hidden Download Button -->
+    <div class="hidden-controls">
+        <button class="btn btn-download" onclick="downloadConfig()" title="Download Config">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+        </button>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
